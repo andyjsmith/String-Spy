@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:StringsApp.ViewModels"
+             x:DataType="vm:StringsViewModel"
+             x:CompileBindings="True"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="StringsApp.StringsView">
+    <Design.DataContext>
+        <vm:StringsViewModel />
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ui:SymbolIconSource x:Key="SaveIcon" Symbol="Save" FontSize="18" />
+            <ui:SymbolIconSource x:Key="OpenFolderIcon" Symbol="OpenFolder" FontSize="18" />
+            <ui:SymbolIconSource x:Key="CheckmarkIcon" Symbol="Checkmark" FontSize="18" />
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+
+        <ui:CommandBar Grid.Row="0" DefaultLabelPosition="Right">
+            <ui:CommandBar.PrimaryCommands>
+                <ui:CommandBarButton Label="Open" IconSource="OpenFolder" Click="Open_Clicked">
+                </ui:CommandBarButton>
+                <ui:CommandBarSeparator></ui:CommandBarSeparator>
+                <ui:CommandBarElementContainer>
+                    <TextBox Height="0" Watermark="Search" MinWidth="200" Classes.clearButton="true"></TextBox>
+                </ui:CommandBarElementContainer>
+                <ui:CommandBarElementContainer>
+                    <CheckBox>Regex</CheckBox>
+                </ui:CommandBarElementContainer>
+                <ui:CommandBarElementContainer>
+                    <CheckBox>Case sensitive</CheckBox>
+                </ui:CommandBarElementContainer>
+            </ui:CommandBar.PrimaryCommands>
+        </ui:CommandBar>
+
+        <TreeDataGrid Grid.Row="1" Source="{Binding StringsSource}"></TreeDataGrid>
+    </Grid>
+</UserControl>
