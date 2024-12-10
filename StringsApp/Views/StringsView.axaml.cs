@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -5,9 +6,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using FluentAvalonia.UI.Controls;
 using StringsApp.ViewModels;
 
@@ -24,7 +23,6 @@ public partial class StringsView : UserControl
     {
         if (DataContext is not StringsViewModel vm) return;
         if (TopLevel.GetTopLevel(this) is not { } topLevel) return;
-
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Select a file",
@@ -43,7 +41,6 @@ public partial class StringsView : UserControl
         };
 
         Debug.WriteLine($"Loading file: {files[0].Name}");
-        
         CancellationTokenSource cts = new();
 
         td.Opened += async (s, _) =>
@@ -53,9 +50,9 @@ public partial class StringsView : UserControl
             Stopwatch sw = Stopwatch.StartNew();
             await Task.Run(() =>
             {
-                vm.Run(file, cts.Token,
+                vm.RunParallel(files[0].Path.LocalPath, Environment.ProcessorCount, cts.Token,
                     (double progress) => { td.SetProgressBarState(progress * 100.0, TaskDialogProgressState.Normal); });
-            });
+            }, cts.Token);
             sw.Stop();
             Debug.WriteLine($"Finished loading file in {sw.Elapsed}");
             td.SetProgressBarState(100, TaskDialogProgressState.Normal);
