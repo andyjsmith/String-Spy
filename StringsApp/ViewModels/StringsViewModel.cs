@@ -10,15 +10,21 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using StringsApp.Strings;
 
 namespace StringsApp.ViewModels;
 
 public partial class StringsViewModel : ViewModelBase
 {
-    private static int MinLen => 4;
+    // Strings
+
+    [ObservableProperty] private int _minimumStringLength = 4;
+
+    partial void OnMinimumStringLengthChanged(int value) => ReloadFile();
 
     private const int BlockSize = 4 << 20; // 4 MiB
 
@@ -30,47 +36,24 @@ public partial class StringsViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isSearchTextValid = true;
 
+    [ObservableProperty] private Character.CharSet _selectedCharSet = Character.CharSet.Ascii;
+    partial void OnSelectedCharSetChanged(Character.CharSet value) => RunSearch();
+
+    // Search
+
     private Task? SearchTask { get; set; }
     private CancellationTokenSource _searchTaskCts = new();
 
     [ObservableProperty] private int _searchProgress;
 
-    private string _searchText = "";
+    [ObservableProperty] private string _searchText = "";
+    partial void OnSearchTextChanged(string value) => RunSearch();
 
-    public string SearchText
-    {
-        get => _searchText;
-        set
-        {
-            _searchText = value;
-            OnPropertyChanged();
-            RunSearch();
-        }
-    }
+    [ObservableProperty] private bool _isRegexEnabled = false;
+    partial void OnIsRegexEnabledChanged(bool value) => RunSearch();
 
-    private bool _isRegexEnabled = false;
-
-    public bool IsRegexEnabled
-    {
-        get => _isRegexEnabled;
-        set
-        {
-            _isRegexEnabled = value;
-            RunSearch();
-        }
-    }
-
-    private bool _isCaseSensitiveEnabled = false;
-
-    public bool IsCaseSensitiveEnabled
-    {
-        get => _isCaseSensitiveEnabled;
-        set
-        {
-            _isCaseSensitiveEnabled = value;
-            RunSearch();
-        }
-    }
+    [ObservableProperty] private bool _isCaseSensitiveEnabled = false;
+    partial void OnIsCaseSensitiveEnabledChanged(bool value) => RunSearch();
 
     private bool ValidateSearchText(string searchText)
     {
@@ -100,8 +83,22 @@ public partial class StringsViewModel : ViewModelBase
         }
     }
 
+    [ObservableProperty] private string? _progressText;
+    [ObservableProperty] private double _progressValue;
+
+    public CancellationTokenSource? ProcessCancellationTokenSource { get; set; }
+
     [RelayCommand]
-    public void CloseFile()
+    public void CancelTask()
+    {
+        ProcessCancellationTokenSource?.Cancel();
+        ProcessCancellationTokenSource = null;
+        ProgressText = null;
+    }
+
+    [ObservableProperty] private string? _loadedFile;
+
+    public void ClearResults()
     {
         CancelSearch();
         AllStringResults.Clear();
@@ -109,11 +106,18 @@ public partial class StringsViewModel : ViewModelBase
         FilteredStrings.Clear();
         FilteredStrings = [];
     }
+    
+    [RelayCommand]
+    public void CloseFile()
+    {
+        ClearResults();
+        LoadedFile = null;
+    }
 
     [RelayCommand]
     public void RunSearch()
     {
-        IsSearchTextValid = ValidateSearchText(_searchText);
+        IsSearchTextValid = ValidateSearchText(SearchText);
         if (!IsSearchTextValid) return;
         CancelSearch();
 
@@ -129,104 +133,105 @@ public partial class StringsViewModel : ViewModelBase
 
             if (searchText == string.Empty)
             {
-                filtered = AllStringResults;
+                FilteredStrings = new ObservableCollection<StringResult>(AllStringResults);
+                Dispatcher.UIThread.Invoke(() => { StringsSource.Items = FilteredStrings; });
+                SearchProgress = 0;
+                return;
             }
-            else
+
+            try
             {
-                try
+                bool useMultithreadedSearch = true;
+
+                Func<StringResult, bool> filterFunc;
+                if (IsRegexEnabled)
                 {
-                    bool useMultithreadedSearch = true;
+                    var regexOptions = RegexOptions.Compiled;
+                    if (!IsCaseSensitiveEnabled) regexOptions |= RegexOptions.IgnoreCase;
 
-                    Func<StringResult, bool> filterFunc;
-                    if (IsRegexEnabled)
+                    Regex re;
+                    try
                     {
-                        var regexOptions = RegexOptions.Compiled;
-                        if (!IsCaseSensitiveEnabled) regexOptions |= RegexOptions.IgnoreCase;
-
-                        Regex re;
-                        try
-                        {
-                            re = new(searchText, regexOptions);
-                        }
-                        catch (ArgumentException)
-                        {
-                            return;
-                        }
-
-                        filterFunc = s => re.IsMatch(s.Content);
+                        re = new(searchText, regexOptions);
                     }
-                    else
+                    catch (ArgumentException)
                     {
-                        StringComparison comparisonType = StringComparison.OrdinalIgnoreCase;
-                        if (IsCaseSensitiveEnabled) comparisonType = StringComparison.Ordinal;
-                        filterFunc = s => s.Content.Contains(searchText, comparisonType);
+                        return;
                     }
 
-                    if (useMultithreadedSearch)
-                    {
-                        int threadCount = Environment.ProcessorCount;
-                        int chunkSize = AllStringResults.Count / threadCount;
+                    filterFunc = s => re.IsMatch(s.Content);
+                }
+                else
+                {
+                    StringComparison comparisonType = StringComparison.OrdinalIgnoreCase;
+                    if (IsCaseSensitiveEnabled) comparisonType = StringComparison.Ordinal;
+                    filterFunc = s => s.Content.Contains(searchText, comparisonType);
+                }
 
-                        List<StringResult>[] results = new List<StringResult>[threadCount];
-                        Parallel.For(0, threadCount, i =>
+                if (useMultithreadedSearch)
+                {
+                    int threadCount = Environment.ProcessorCount;
+                    int chunkSize = AllStringResults.Count / threadCount;
+
+                    List<StringResult>[] results = new List<StringResult>[threadCount];
+                    Parallel.For(0, threadCount, i =>
+                    {
+                        int start = i * chunkSize;
+                        int end = (i == threadCount - 1) ? AllStringResults.Count : start + chunkSize;
+                        Debug.WriteLine(
+                            $"Starting string processor: {i + 1:D2}/{threadCount}, start: {start}, end: {end}");
+                        results[i] = new List<StringResult>();
+                        for (int j = start; j < end; j++)
                         {
-                            int start = i * chunkSize;
-                            int end = (i == threadCount - 1) ? AllStringResults.Count : start + chunkSize;
-                            Debug.WriteLine(
-                                $"Starting string processor: {i + 1:D2}/{threadCount}, start: {start}, end: {end}");
-                            results[i] = new List<StringResult>();
-                            for (int j = start; j < end; j++)
+                            if (ct.IsCancellationRequested)
                             {
-                                if (ct.IsCancellationRequested)
-                                {
-                                    return;
-                                }
+                                return;
+                            }
 
-                                if (filterFunc(AllStringResults[j]))
-                                {
-                                    results[i].Add(AllStringResults[j]);
-                                }
+                            if (filterFunc(AllStringResults[j]))
+                            {
+                                results[i].Add(AllStringResults[j]);
+                            }
 
-                                if ((j - start) % 100000 == 0)
-                                {
+                            if ((j - start) % 100000 == 0)
+                            {
 #pragma warning disable MVVMTK0034
-                                    Interlocked.Add(ref _searchProgress, 100000);
+                                Interlocked.Add(ref _searchProgress, 100000);
 #pragma warning restore MVVMTK0034
-                                    OnPropertyChanged(nameof(SearchProgress));
-                                }
+                                OnPropertyChanged(nameof(SearchProgress));
                             }
-                        });
-
-                        foreach (List<StringResult> result in results)
-                        {
-                            filtered.AddRange(result);
                         }
-                    }
-                    else
+                    });
+
+                    foreach (List<StringResult> result in results)
                     {
-                        int i = -1;
-                        foreach (var s in AllStringResults)
+                        filtered.AddRange(result);
+                    }
+                }
+                else
+                {
+                    int i = -1;
+                    foreach (var s in AllStringResults)
+                    {
+                        i++;
+                        if (i % 100000 == 0)
                         {
-                            i++;
-                            if (i % 100000 == 0)
-                            {
-                                SearchProgress = i;
-                            }
+                            SearchProgress = i;
+                        }
 
-                            ct.ThrowIfCancellationRequested();
+                        ct.ThrowIfCancellationRequested();
 
-                            if (s.Content.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-                            {
-                                filtered.Add(s);
-                            }
+                        if (s.Content.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                        {
+                            filtered.Add(s);
                         }
                     }
                 }
-                catch (OperationCanceledException)
-                {
-                    Debug.WriteLine("Search cancelled with exception");
-                    return;
-                }
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("Search cancelled with exception");
+                return;
             }
 
             FilteredStrings = new ObservableCollection<StringResult>(filtered);
@@ -235,63 +240,30 @@ public partial class StringsViewModel : ViewModelBase
         }, ct);
     }
 
-    private List<Encoding> AllEncodings { get; } = [];
+    private List<Encoding> AllEncodings { get; }
 
     [ObservableProperty] private List<Encoding> _filteredEncodings;
 
     [ObservableProperty] private Encoding _selectedEncoding;
-    private string _encodingFilter = "";
+    partial void OnSelectedEncodingChanged(Encoding value) => ReloadFile();
 
-    private static readonly List<Encoding> PrioritizedEncodings =
-    [
-        Encoding.ASCII,
-        Encoding.Latin1,
-        Encoding.UTF8,
-        Encoding.Unicode, // UTF16-LE
-        Encoding.BigEndianUnicode, // UTF16-BE
-        Encoding.UTF32, // UTF32-LE
-        Encoding.GetEncoding(12001) // UTF32-BE
-    ];
+    [ObservableProperty] private string _encodingFilter = "";
 
-    public string EncodingFilter
+    partial void OnEncodingFilterChanged(string value)
     {
-        get => _encodingFilter;
-        set
+        if (string.IsNullOrWhiteSpace(EncodingFilter))
         {
-            _encodingFilter = value;
-            OnPropertyChanged();
-            if (string.IsNullOrWhiteSpace(_encodingFilter))
-            {
-                FilteredEncodings = AllEncodings;
-                return;
-            }
-
-            List<Encoding> encodings = AllEncodings.Where(e =>
-                e.EncodingName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-                e.WebName.Contains(value, StringComparison.OrdinalIgnoreCase)).ToList();
-            FilteredEncodings = encodings;
+            FilteredEncodings = AllEncodings;
+            return;
         }
+
+        List<Encoding> encodings = AllEncodings.Where(e =>
+            e.EncodingName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            e.WebName.Contains(value, StringComparison.OrdinalIgnoreCase)).ToList();
+        FilteredEncodings = encodings;
     }
 
-    public record OffsetFormatter(string Name, Func<StringResult, string> Format);
-
-    private static readonly OffsetFormatter DecimalOffsetFormatter =
-        new("Decimal", result => result.Position.ToString());
-
-    private static readonly OffsetFormatter HexadecimalOffsetFormatter =
-        new("Hexadecimal", result => "0x" + result.Position.ToString("X"));
-
-    private static readonly OffsetFormatter OctalOffsetFormatter =
-        new("Octal", result => "0" + Convert.ToString(result.Position, 8));
-
-    public List<OffsetFormatter> OffsetFormatters { get; } =
-    [
-        DecimalOffsetFormatter,
-        HexadecimalOffsetFormatter,
-        OctalOffsetFormatter
-    ];
-
-    [ObservableProperty] private OffsetFormatter _selectedOffsetFormatter = DecimalOffsetFormatter;
+    [ObservableProperty] private OffsetFormatter _selectedOffsetFormatter = OffsetFormatter.Hexadecimal;
 
     partial void OnSelectedOffsetFormatterChanged(OffsetFormatter value)
     {
@@ -305,10 +277,62 @@ public partial class StringsViewModel : ViewModelBase
         {
             Columns =
             {
-                new TextColumn<StringResult, string>("Position", x => offsetFormatter.Format(x)),
+                new TextColumn<StringResult, string>("Position", x => offsetFormatter.Format(x.Position))
+                {
+                    Options = { TextAlignment = TextAlignment.End }
+                },
+                new TextColumn<StringResult, string>("EndPosition", x => offsetFormatter.Format(x.EndPosition))
+                {
+                    Options = { TextAlignment = TextAlignment.End }
+                },
                 new TextColumn<StringResult, string>("String", x => x.Content)
+                {
+                    Options = { TextTrimming = TextTrimming.CharacterEllipsis }
+                }
             }
         };
+    }
+
+    public List<OffsetFormatter> OffsetFormatters { get; } =
+    [
+        OffsetFormatter.Hexadecimal,
+        OffsetFormatter.Decimal,
+        OffsetFormatter.Octal
+    ];
+
+    public void ReloadFile()
+    {
+        if (LoadedFile is null) return;
+        OpenFile(LoadedFile);
+    }
+
+    public async void OpenFile(string path)
+    {
+        ClearResults();
+        LoadedFile = path;
+        Debug.WriteLine($"Loading file: {path}");
+        if (ProcessCancellationTokenSource != null)
+        {
+            ProcessCancellationTokenSource.Cancel();
+        }
+
+        ProcessCancellationTokenSource = new CancellationTokenSource();
+
+        ProgressValue = 0;
+        ProgressText = $"Loading file: {path}";
+
+        FileStream file = File.OpenRead(path);
+        Stopwatch sw = Stopwatch.StartNew();
+        await Task.Run(() =>
+        {
+            RunParallel(path, Environment.ProcessorCount,
+                (double progress) => { ProgressValue = progress * 100.0; },
+                ProcessCancellationTokenSource.Token);
+        }, ProcessCancellationTokenSource.Token);
+        sw.Stop();
+        Debug.WriteLine($"Finished loading file in {sw.Elapsed}");
+        ProgressValue = 100;
+        ProgressText = null;
     }
 
     public StringsViewModel()
@@ -317,46 +341,82 @@ public partial class StringsViewModel : ViewModelBase
         // .NET core doesn't include them by default
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+        List<Encoding> prioritizedEncodings =
+        [
+            Encoding.ASCII,
+            Encoding.UTF8,
+            Encoding.Unicode, // UTF16-LE
+            Encoding.BigEndianUnicode, // UTF16-BE
+            Encoding.UTF32, // UTF32-LE
+            Encoding.GetEncoding(12001), // UTF32-BE
+            Encoding.Latin1,
+            Encoding.GetEncoding(1252) // Windows-1252
+        ];
+
         // Add prioritized encodings to the top of encodings list for easier visibility,
         // followed by the rest of the non-prioritized encodings
-        AllEncodings = PrioritizedEncodings.Concat(
+        AllEncodings = prioritizedEncodings.Concat(
             Encoding.GetEncodings()
                 .Select(e => e.GetEncoding())
-                .Except(PrioritizedEncodings)
+                .Except(prioritizedEncodings)
                 .OrderBy(e => e.EncodingName)
         ).ToList();
 
         FilteredEncodings = AllEncodings;
         SelectedEncoding = Encoding.ASCII;
 
-        StringsSource = CreateStringsSource(DecimalOffsetFormatter);
+        StringsSource = CreateStringsSource(OffsetFormatter.Hexadecimal);
     }
 
-    public void RunParallel(string path, int threadCount, CancellationToken ct, Action<double>? progressCallback)
+    public void RunParallel(string path, int threadCount, Action<double>? progressCallback, CancellationToken ct)
     {
         FileInfo fileInfo = new(path);
         long fileSize = fileInfo.Length;
         long chunkSize = fileSize / threadCount;
         long[] bytesProcessed = new long[threadCount];
-        List<StringResult>[] bag = new List<StringResult>[threadCount];
-        Parallel.For(0, threadCount, i =>
+        var bag = new List<StringResult>[threadCount];
+        if (threadCount == 1)
         {
-            long start = i * chunkSize;
-            long end = (i == threadCount - 1) ? fileSize : start + chunkSize;
-            Debug.WriteLine($"Starting chunk processor: {i + 1:D2}/{threadCount}, start: {start}, end: {end}");
-            var results = ProcessChunk(path, start, end, Encoding.ASCII, ct, b =>
+            long start = 0;
+            long end = fileSize;
+            Debug.WriteLine($"Starting chunk processor: start: {start}, end: {end}");
+            var stringResults = ProcessChunk(path, start, end, SelectedEncoding, SelectedCharSet, ct, b =>
             {
-                bytesProcessed[i] = b;
+                bytesProcessed[0] = b;
                 progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
             });
-            bag[i] = results;
-        });
+            bag[0] = stringResults;
+        }
+        else
+        {
+            Parallel.For(0, threadCount, i =>
+            {
+                long start = i * chunkSize;
+                long end = (i == threadCount - 1) ? fileSize : start + chunkSize;
+                Debug.WriteLine(
+                    $"Starting parallel chunk processor: {i + 1:D2}/{threadCount}, start: {start}, end: {end}");
+                var results = ProcessChunk(path, start, end, SelectedEncoding, SelectedCharSet, ct, b =>
+                {
+                    bytesProcessed[i] = b;
+                    progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
+                });
+                bag[i] = results;
+            });
+        }
 
-        List<StringResult> results = new();
-
+        List<StringResult> results = [];
         foreach (List<StringResult> result in bag)
         {
             results.AddRange(result);
+        }
+
+        // Remove overlapping strings
+        for (int i = results.Count - 1; i > 0; i--)
+        {
+            if (results[i].Position <= results[i - 1].EndPosition)
+            {
+                results.RemoveAt(i);
+            }
         }
 
         AllStringResults = results;
@@ -365,118 +425,98 @@ public partial class StringsViewModel : ViewModelBase
         Dispatcher.UIThread.Invoke(() => { StringsSource.Items = FilteredStrings; });
     }
 
-    private bool IsPrintable(byte c)
-    {
-        if (c is >= 0x20 and <= 0x7e or 0x09 /*|| c == 0x0a*/)
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    private List<StringResult> ProcessChunk(string path, long start, long end, Encoding encoding, CancellationToken ct,
-        Action<long>? progressCallback)
+    private List<StringResult> ProcessChunk(string path, long start, long end, Encoding encoding,
+        Character.CharSet charSet, CancellationToken ct, Action<long>? progressCallback)
     {
         // Skip to this chunk's start point
         using FileStream fs = new(path, FileMode.Open, FileAccess.Read);
+        fs.Seek(start, SeekOrigin.Begin);
 
-        byte[] buff = new byte[BlockSize];
+        // Get max byte count of a char in this encoding
+        int maxBytesPerChar = encoding.GetMaxByteCount(1);
+        int maxCharCount = encoding.GetMaxCharCount(maxBytesPerChar);
+        Debug.Assert(maxBytesPerChar > 0);
+
+        byte[] buff = new byte[BlockSize + maxBytesPerChar - 1];
 
         StringBuilder currentString = new();
         long currentStringStart = 0;
 
         List<StringResult> foundStrings = [];
 
-        int numRead;
-        var totalRead = 0;
-        bool isFirstChunk = start == 0;
+        int numBytesRead;
+        var totalBytesRead = 0;
 
-        bool hasSkippedPastFirstNonString = true;
+        // Set the encoding to use null byte as replacement character when a char isn't valid for the encoding,
+        // this will just act as a non-printable char and end the string.
+        encoding = (Encoding)encoding.Clone();
+        encoding.DecoderFallback = new DecoderReplacementFallback("\0");
 
-        if (isFirstChunk)
-        {
-            fs.Seek(start, SeekOrigin.Begin);
-        }
-        else
-        {
-            // For every chunk besides the first, we need to read one byte prior and check if it's non-printable
-            // If printable, then the first character here is a part of the previous chunk's last string.
-            // If non-printable, then we can continue parsing.
-            // TODO: This still won't work for multibyte encodings though!
-            hasSkippedPastFirstNonString = false;
+        // Create a char buffer of that length
+        // TODO: Reuse a char buffer instead
+        var charDecodeBuff = new char[maxCharCount];
 
-            fs.Seek(start - 1, SeekOrigin.Begin);
-            byte[] c = new byte[1];
-            numRead = fs.Read(c, 0, 1);
-            if (numRead == 0)
-            {
-                throw new InvalidDataException("Could not read previous chunk's last byte");
-            }
-
-            if (IsPrintable(c[0]))
-            {
-                hasSkippedPastFirstNonString = true;
-            }
-        }
-
-        while ((numRead = fs.Read(buff, 0, BlockSize)) > 0)
+        bool breakOuter = false;
+        while (!breakOuter && (numBytesRead = fs.Read(buff, 0, BlockSize)) > 0)
         {
             if (ct.IsCancellationRequested) return [];
-            progressCallback?.Invoke(totalRead);
+            progressCallback?.Invoke(totalBytesRead);
+            totalBytesRead += numBytesRead;
 
-            totalRead += numRead;
+            long bufferStartOffset = fs.Position - numBytesRead;
 
-            if (numRead < buff.Length)
+            if (numBytesRead < buff.Length)
             {
                 // We're reusing the buffer, need to clear any previous data out
-                Array.Fill(buff, (byte)0, numRead, buff.Length - numRead);
+                Array.Clear(buff, numBytesRead, buff.Length - numBytesRead);
             }
 
-            for (var i = 0; i < numRead; i++)
+            var i = 0;
+            int bufferLength = Math.Min(numBytesRead, BlockSize);
+            while (i < bufferLength)
             {
-                byte c = buff[i];
+                // TODO: What if buffer isn't div by 4? Might have 1-3 bytes left over that need to be rolled into beginning of next
+                // TODO: Potential solution is to limit BlockSize to a multiple of 4...
+                Array.Clear(charDecodeBuff, 0, charDecodeBuff.Length);
+                int numCharsDecoded = encoding.GetChars(buff, i, maxBytesPerChar, charDecodeBuff, 0);
 
-                if (IsPrintable(c))
+                if (numCharsDecoded == 0 || !Character.IsPrintable(charDecodeBuff[0], encoding, charSet))
                 {
-                    // Is a string
-
-                    // If we're not the first chunk, need to skip to the first non-string character, since before that will be
-                    // handled by the previous chunk's processor as part of overlap
-                    // TODO: There is definitely an edge case here -- what if previous chunk ended at a null? Then first char of this chunk will be string char that we need to use, not skip
-                    if (!hasSkippedPastFirstNonString)
-                    {
-                        // Still in the previous chunk's string, skip
-                        continue;
-                    }
-
-                    if (currentString.Length == 0)
-                    {
-                        currentStringStart = fs.Position - numRead + i;
-                    }
-
-                    currentString.Append((char)c);
-                }
-                else
-                {
-                    // Not a string
-                    if (!hasSkippedPastFirstNonString) hasSkippedPastFirstNonString = true;
-
-                    if (currentString.Length >= MinLen)
+                    // Not printable here, reset and advance
+                    if (currentString.Length >= MinimumStringLength)
                     {
                         foundStrings.Add(new StringResult(currentString.ToString(), currentStringStart));
                     }
 
                     currentString.Clear();
-                    if (fs.Position - numRead + i >= end)
+
+                    if ((bufferStartOffset + i) >= end)
                     {
-                        return foundStrings;
+                        breakOuter = true;
+                        break;
                     }
+
+                    // Advance by one byte, since next string could start less than a full char away
+                    i++;
+                }
+                else
+                {
+                    // Char printable
+                    if (currentString.Length == 0)
+                    {
+                        // We're at the start of a new string
+                        currentStringStart = bufferStartOffset + i;
+                    }
+
+                    currentString.Append(charDecodeBuff[0]);
+
+                    // Advance by the byte length of that char
+                    i += encoding.GetByteCount(charDecodeBuff, 0, 1);
                 }
             }
         }
 
-        if (currentString.Length >= MinLen)
+        if (currentString.Length >= MinimumStringLength)
         {
             foundStrings.Add(new StringResult(currentString.ToString(), currentStringStart));
         }

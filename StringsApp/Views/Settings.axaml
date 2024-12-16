@@ -54,6 +54,30 @@
                 </ui:SettingsExpander.Footer>
             </ui:SettingsExpander>
 
+            <TextBlock FontSize="18">Strings</TextBlock>
+
+            <ui:SettingsExpander Header="Printable character set"
+                                 IconSource="C"
+                                 Description="Character set to use when determining valid characters for strings. Default is ASCII. Set to Selected Encoding to allow for all printable characters in the selected encoding. Not that for encodings like Unicode, this will include a lot of characters and therefore noise.">
+                <ui:SettingsExpander.Footer>
+                    <ComboBox SelectedItem="{Binding AddressFormat}"
+                              ItemsSource="{Binding AddressFormats}"
+                              MinWidth="150">
+                    </ComboBox>
+                </ui:SettingsExpander.Footer>
+            </ui:SettingsExpander>
+            
+            <ui:SettingsExpander Header="Default encoding"
+                                 IconSource="A"
+                                 Description="Default encoding to use for parsing strings">
+                <ui:SettingsExpander.Footer>
+                    <ComboBox SelectedItem="{Binding AddressFormat}"
+                              ItemsSource="{Binding AddressFormats}"
+                              MinWidth="150">
+                    </ComboBox>
+                </ui:SettingsExpander.Footer>
+            </ui:SettingsExpander>
+
             <TextBlock FontSize="18">Search</TextBlock>
 
             <ui:SettingsExpander Header="Automatic search"

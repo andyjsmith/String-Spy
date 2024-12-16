@@ -24,9 +24,7 @@
                 <ui:NavigationViewItemSeparator />
             </ui:NavigationView.MenuItems>
 
-            <ui:Frame Name="PageFrame" Padding="10 0 10 0">
-
-            </ui:Frame>
+            <ui:Frame Name="PageFrame" Padding="10 0 10 0" />
 
         </ui:NavigationView>
     </Grid>
