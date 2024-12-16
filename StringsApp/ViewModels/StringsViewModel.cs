@@ -4,6 +4,7 @@ using Avalonia.Controls.Models.TreeDataGrid;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,9 @@ using CommunityToolkit.Mvvm.Input;
 using StringsApp.Strings;
 
 namespace StringsApp.ViewModels;
+
+// Using auto-generated OnChanged methods from ObservableProperty to call others, sometimes without using the value 
+[SuppressMessage("ReSharper", "UnusedParameterInPartialMethod")]
 
 public partial class StringsViewModel : ViewModelBase
 {
@@ -86,7 +90,7 @@ public partial class StringsViewModel : ViewModelBase
     [ObservableProperty] private string? _progressText;
     [ObservableProperty] private double _progressValue;
 
-    public CancellationTokenSource? ProcessCancellationTokenSource { get; set; }
+    private CancellationTokenSource? ProcessCancellationTokenSource { get; set; }
 
     [RelayCommand]
     public void CancelTask()
@@ -98,7 +102,7 @@ public partial class StringsViewModel : ViewModelBase
 
     [ObservableProperty] private string? _loadedFile;
 
-    public void ClearResults()
+    private void ClearResults()
     {
         CancelSearch();
         AllStringResults.Clear();
@@ -300,7 +304,7 @@ public partial class StringsViewModel : ViewModelBase
         OffsetFormatter.Octal
     ];
 
-    public void ReloadFile()
+    private void ReloadFile()
     {
         if (LoadedFile is null) return;
         OpenFile(LoadedFile);
@@ -308,25 +312,25 @@ public partial class StringsViewModel : ViewModelBase
 
     public async void OpenFile(string path)
     {
+        // TODO: Handle exceptions here (insufficient permissions to open file, etc.)
         ClearResults();
         LoadedFile = path;
         Debug.WriteLine($"Loading file: {path}");
         if (ProcessCancellationTokenSource != null)
         {
-            ProcessCancellationTokenSource.Cancel();
+            await ProcessCancellationTokenSource.CancelAsync();
         }
 
         ProcessCancellationTokenSource = new CancellationTokenSource();
 
         ProgressValue = 0;
         ProgressText = $"Loading file: {path}";
-
-        FileStream file = File.OpenRead(path);
+        
         Stopwatch sw = Stopwatch.StartNew();
         await Task.Run(() =>
         {
             RunParallel(path, Environment.ProcessorCount,
-                (double progress) => { ProgressValue = progress * 100.0; },
+                progress => { ProgressValue = progress * 100.0; },
                 ProcessCancellationTokenSource.Token);
         }, ProcessCancellationTokenSource.Token);
         sw.Stop();
