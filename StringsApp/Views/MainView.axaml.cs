@@ -19,7 +19,7 @@ public partial class MainView : UserControl
             switch (navItem.Tag.ToString())
             {
                 case "Settings":
-                    PageFrame.Navigate(typeof(Settings));
+                    PageFrame.Navigate(typeof(SettingsView));
                     PageFrame.DataContext = ((MainViewModel)DataContext).SettingsDataContext;
                     break;
                 case "HomePage":

@@ -7,9 +7,9 @@ using StringsApp.ViewModels;
 
 namespace StringsApp;
 
-public partial class Settings : UserControl
+public partial class SettingsView : UserControl
 {
-    public Settings()
+    public SettingsView()
     {
         InitializeComponent();
     }
