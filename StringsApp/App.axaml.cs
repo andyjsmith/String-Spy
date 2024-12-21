@@ -2,7 +2,7 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
-
+using StringsApp.Settings;
 using StringsApp.ViewModels;
 using StringsApp.Views;
 
@@ -13,6 +13,7 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        SettingsManager.Instance.LoadSettings();
     }
 
     public override void OnFrameworkInitializationCompleted()

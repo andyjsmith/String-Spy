@@ -4,7 +4,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:StringsApp.ViewModels"
-             xmlns:treeDataGrid="clr-namespace:Avalonia.Controls.Models.TreeDataGrid;assembly=Avalonia.Controls.TreeDataGrid"
              x:DataType="vm:StringsViewModel"
              x:CompileBindings="True"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="450"
@@ -14,6 +13,7 @@
     </Design.DataContext>
 
     <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Command bar -->
         <ui:CommandBar Grid.Row="0" DefaultLabelPosition="Right">
             <ui:CommandBar.PrimaryCommands>
                 <ui:CommandBarButton Label="Open" IconSource="OpenFolder" Click="Open_Clicked" HotKey="Ctrl+O" />
@@ -112,13 +112,16 @@
             </ui:CommandBar.SecondaryCommands>
         </ui:CommandBar>
 
-        <TreeDataGrid Grid.Row="1" Source="{Binding StringsSource}">
+        <!-- Strings table -->
+        <TreeDataGrid Grid.Row="1" Source="{Binding StringsSource}" FontFamily="{Binding Font}">
             <TreeDataGrid.Styles>
                 <Style Selector="ScrollBar">
                     <Setter Property="AllowAutoHide" Value="False" />
                 </Style>
             </TreeDataGrid.Styles>
         </TreeDataGrid>
+        
+        <!-- Footer -->
         <Border IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNotNull}}" Grid.Row="2"
                 BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0 1 0 0"
                 Padding="5 5 5 5">

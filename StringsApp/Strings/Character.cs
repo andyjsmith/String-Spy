@@ -31,8 +31,30 @@ public static class Character
         /// </summary>
         CurrentEncoding
     }
-    
-    
+
+    public static CharSet StringToCharSet(string name)
+    {
+        return name switch
+        {
+            "Ascii" => CharSet.Ascii,
+            "Latin1" => CharSet.Latin1,
+            "CurrentEncoding" => CharSet.CurrentEncoding,
+            _ => CharSet.Ascii
+        };
+    }
+
+    public static Encoding StringToEncoding(string name)
+    {
+        try
+        {
+            return Encoding.GetEncoding(name);
+        }
+        catch (ArgumentException)
+        {
+            return Encoding.ASCII;
+        }
+    }
+
     private static bool IsControlOrNonPrintableWhiteSpace(char c, bool preserveNewLine = false)
     {
         if (c is ' ' or '\t') return false; // tab and space are whitespace, but we want to keep them
@@ -60,7 +82,7 @@ public static class Character
         if (IsControlOrNonPrintableWhiteSpace(c, preserveNewLine)) return false;
         return IsCharValidInEncoding(c, encoding);
     }
-    
+
     private static bool IsCharValidInEncoding(char c, Encoding encoding)
     {
         // TODO: Optimize this so encoder, encoder.Fallback, and the bytes buffer are out of the hot loop, we can reuse their values.

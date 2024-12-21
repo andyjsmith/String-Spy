@@ -15,18 +15,21 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using StringsApp.Settings;
 using StringsApp.Strings;
 
 namespace StringsApp.ViewModels;
 
 // Using auto-generated OnChanged methods from ObservableProperty to call others, sometimes without using the value 
 [SuppressMessage("ReSharper", "UnusedParameterInPartialMethod")]
-
 public partial class StringsViewModel : ViewModelBase
 {
     // Strings
 
-    [ObservableProperty] private int _minimumStringLength = 4;
+    [ObservableProperty]
+    private int _minimumStringLength = SettingsManager.Instance.AppSettings.DefaultMinimumStringLength;
+
+    [ObservableProperty] private FontFamily _font = SettingsManager.Instance.AppSettings.Font;
 
     partial void OnMinimumStringLengthChanged(int value) => ReloadFile();
 
@@ -40,8 +43,7 @@ public partial class StringsViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isSearchTextValid = true;
 
-    [ObservableProperty] private Character.CharSet _selectedCharSet = Character.CharSet.Ascii;
-    partial void OnSelectedCharSetChanged(Character.CharSet value) => RunSearch();
+    private Character.CharSet SelectedCharSet => Character.StringToCharSet(SettingsManager.Instance.AppSettings.CharacterSet);
 
     // Search
 
@@ -51,12 +53,18 @@ public partial class StringsViewModel : ViewModelBase
     [ObservableProperty] private int _searchProgress;
 
     [ObservableProperty] private string _searchText = "";
-    partial void OnSearchTextChanged(string value) => RunSearch();
 
-    [ObservableProperty] private bool _isRegexEnabled = false;
+    partial void OnSearchTextChanged(string value)
+    {
+        if (SettingsManager.Instance.AppSettings.AutomaticSearch) RunSearch();
+    }
+
+    [ObservableProperty] private bool _isRegexEnabled = SettingsManager.Instance.AppSettings.DefaultUseRegex;
     partial void OnIsRegexEnabledChanged(bool value) => RunSearch();
 
-    [ObservableProperty] private bool _isCaseSensitiveEnabled = false;
+    [ObservableProperty]
+    private bool _isCaseSensitiveEnabled = SettingsManager.Instance.AppSettings.DefaultCaseSensitive;
+
     partial void OnIsCaseSensitiveEnabledChanged(bool value) => RunSearch();
 
     private bool ValidateSearchText(string searchText)
@@ -110,7 +118,7 @@ public partial class StringsViewModel : ViewModelBase
         FilteredStrings.Clear();
         FilteredStrings = [];
     }
-    
+
     [RelayCommand]
     public void CloseFile()
     {
@@ -267,7 +275,8 @@ public partial class StringsViewModel : ViewModelBase
         FilteredEncodings = encodings;
     }
 
-    [ObservableProperty] private OffsetFormatter _selectedOffsetFormatter = OffsetFormatter.Hexadecimal;
+    [ObservableProperty] private OffsetFormatter _selectedOffsetFormatter =
+        StringToOffsetFormatter(SettingsManager.Instance.AppSettings.DefaultAddressFormat);
 
     partial void OnSelectedOffsetFormatterChanged(OffsetFormatter value)
     {
@@ -281,11 +290,11 @@ public partial class StringsViewModel : ViewModelBase
         {
             Columns =
             {
-                new TextColumn<StringResult, string>("Position", x => offsetFormatter.Format(x.Position))
+                new TextColumn<StringResult, string>("Start", x => offsetFormatter.Format(x.Position))
                 {
                     Options = { TextAlignment = TextAlignment.End }
                 },
-                new TextColumn<StringResult, string>("EndPosition", x => offsetFormatter.Format(x.EndPosition))
+                new TextColumn<StringResult, string>("End", x => offsetFormatter.Format(x.EndPosition))
                 {
                     Options = { TextAlignment = TextAlignment.End }
                 },
@@ -294,6 +303,17 @@ public partial class StringsViewModel : ViewModelBase
                     Options = { TextTrimming = TextTrimming.CharacterEllipsis }
                 }
             }
+        };
+    }
+
+    private static OffsetFormatter StringToOffsetFormatter(string s)
+    {
+        return s switch
+        {
+            "Hexadecimal" => OffsetFormatter.Hexadecimal,
+            "Octal" => OffsetFormatter.Octal,
+            "Decimal" => OffsetFormatter.Decimal,
+            _ => OffsetFormatter.Hexadecimal
         };
     }
 
@@ -325,7 +345,7 @@ public partial class StringsViewModel : ViewModelBase
 
         ProgressValue = 0;
         ProgressText = $"Loading file: {path}";
-        
+
         Stopwatch sw = Stopwatch.StartNew();
         await Task.Run(() =>
         {
@@ -367,9 +387,16 @@ public partial class StringsViewModel : ViewModelBase
         ).ToList();
 
         FilteredEncodings = AllEncodings;
-        SelectedEncoding = Encoding.ASCII;
+        try
+        {
+            SelectedEncoding = Encoding.GetEncoding(SettingsManager.Instance.AppSettings.DefaultEncoding);
+        }
+        catch (ArgumentException)
+        {
+            SelectedEncoding = Encoding.ASCII;
+        }
 
-        StringsSource = CreateStringsSource(OffsetFormatter.Hexadecimal);
+        StringsSource = CreateStringsSource(SelectedOffsetFormatter);
     }
 
     public void RunParallel(string path, int threadCount, Action<double>? progressCallback, CancellationToken ct)
