@@ -119,6 +119,13 @@
                     <Setter Property="AllowAutoHide" Value="False" />
                 </Style>
             </TreeDataGrid.Styles>
+            <TreeDataGrid.ContextMenu>
+                <ContextMenu IsEnabled="{Binding !!StringsSource.RowSelection.Count}">
+                    <MenuItem Header="Copy start" Click="CopyRow_OnClick" Tag="Start" />
+                    <MenuItem Header="Copy end" Click="CopyRow_OnClick" Tag="End" />
+                    <MenuItem Header="Copy string" Click="CopyRow_OnClick" Tag="String" />
+                </ContextMenu>
+            </TreeDataGrid.ContextMenu>
         </TreeDataGrid>
         
         <!-- Footer -->
