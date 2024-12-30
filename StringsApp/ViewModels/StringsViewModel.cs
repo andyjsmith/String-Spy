@@ -127,6 +127,42 @@ public partial class StringsViewModel : ViewModelBase
         LoadedFile = null;
     }
 
+    public event Action FocusSearchBoxEvent;
+    public void FocusSearchBox() => FocusSearchBoxEvent.Invoke();
+
+    public delegate void SelectionChangedAction(int index);
+    public event SelectionChangedAction? SelectionChanged;
+    
+    private bool IsGoToDialogVisible { get; set; } = false;
+
+    [RelayCommand]
+    public async Task ShowGoToDialog()
+    {
+        // Only allow one instance
+        if (IsGoToDialogVisible) return;
+        
+        IsGoToDialogVisible = true;
+        var vm = new GoToDialogViewModel();
+        long? val = await vm.ShowAsync();
+        IsGoToDialogVisible = false;
+        if (val == null) return;
+        if (StringsSource.Rows.Count == 0) return;
+        
+        // Scroll to address
+        for (int i = FilteredStrings.Count - 1; i >= 0; i--)
+        {
+            if (val < FilteredStrings[i].Position) continue;
+            
+            StringsSource.RowSelection!.SelectedIndex = i;
+            SelectionChanged?.Invoke(i);
+            return;
+        }
+        
+        // Value is less than first index, so select the first row
+        StringsSource.RowSelection!.SelectedIndex = 0;
+        SelectionChanged?.Invoke(0);
+    }
+
     [RelayCommand]
     public void RunSearch()
     {

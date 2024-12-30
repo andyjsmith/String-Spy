@@ -8,10 +8,27 @@ namespace StringsApp;
 
 public partial class StringsView : UserControl
 {
-
     public StringsView()
     {
         InitializeComponent();
+
+        DataContextChanged += DataContextChangedHandler;
+    }
+
+    void DataContextChangedHandler(object? sender, EventArgs? e)
+    {
+        if (DataContext is not StringsViewModel vm) return;
+        
+        vm.SelectionChanged += index =>
+        {
+            if (Tree.RowsPresenter == null) return;
+            Tree.RowsPresenter.BringIntoView(index);
+        };
+
+        vm.FocusSearchBoxEvent += () =>
+        {
+            SearchTextBox.Focus();
+        };
     }
 
     private async void Open_Clicked(object? sender, RoutedEventArgs e)
