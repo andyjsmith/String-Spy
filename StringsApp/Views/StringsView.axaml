@@ -14,7 +14,12 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
         <!-- Command bar -->
-        <ui:CommandBar Grid.Row="0" DefaultLabelPosition="Right">
+        <ui:CommandBar Grid.Row="0" DefaultLabelPosition="Collapsed" x:Name="CommandBar">
+            <ui:CommandBar.Styles>
+                <Style Selector="ui|CommandBarToggleButton">
+                    <Setter Property="Width" Value="48" />
+                </Style>
+            </ui:CommandBar.Styles>
             <ui:CommandBar.PrimaryCommands>
                 <ui:CommandBarButton Label="Open" IconSource="OpenFolder" Click="Open_Clicked" HotKey="Ctrl+O" />
 
@@ -22,8 +27,11 @@
 
                 <ui:CommandBarElementContainer Padding="6 0">
                     <StackPanel Orientation="Horizontal">
-                        <TextBox Height="0" Watermark="Search" MinWidth="200" Classes.clearButton="true"
-                                 Text="{Binding SearchText}" Classes.invalid="{Binding !IsSearchTextValid}">
+                        <TextBox Height="0" Watermark="Search" MinWidth="200"
+                                 Classes.clearButton="true"
+                                 Classes.invalid="{Binding !IsSearchTextValid}"
+                                 Text="{Binding SearchText}"
+                                 x:Name="SearchTextBox">
                             <TextBox.KeyBindings>
                                 <KeyBinding Gesture="Enter" Command="{Binding RunSearch}" />
                             </TextBox.KeyBindings>
@@ -37,26 +45,43 @@
                     </StackPanel>
                 </ui:CommandBarElementContainer>
 
-                <ui:CommandBarElementContainer Padding="6 0" IsVisible="{Binding !!SearchProgress}" Width="32">
-                    <ui:ProgressRing Value="{Binding SearchProgress}" Minimum="0"
-                                     Maximum="{Binding AllStringResults.Count}" IsIndeterminate="False" Height="25">
-                    </ui:ProgressRing>
+                <ui:CommandBarElementContainer Padding="6 0" 
+                                               IsVisible="{Binding !!SearchProgress}"
+                                               Width="32" Margin="0 0 8 0"
+                                               ToolTip.Tip="Search progress">
+                    <ui:ProgressRing Value="{Binding SearchProgress}"
+                                     Minimum="0"
+                                     Maximum="{Binding AllStringResults.Count}"
+                                     IsIndeterminate="False"
+                                     Height="25" />
                 </ui:CommandBarElementContainer>
-                <ui:CommandBarElementContainer Padding="6 0" IsVisible="{Binding !SearchProgress}" Width="32">
-                    <ui:FontIcon Glyph="&#xE10B;" FontFamily="{StaticResource SymbolThemeFontFamily}" FontSize="20" />
+                <ui:CommandBarElementContainer Padding="6 0"
+                                               IsVisible="{Binding !SearchProgress}"
+                                               Width="32" Margin="0 0 8 0"
+                                               ToolTip.Tip="Search progress">
+                    <ui:FontIcon Glyph="&#xE10B;"
+                                 FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                 FontSize="20" />
                 </ui:CommandBarElementContainer>
 
-                <ui:CommandBarToggleButton IconSource="Font" Label="Case sensitive"
+                <ui:CommandBarToggleButton IconSource="Font" ToolTip.Tip="Case sensitive"
+                                           IsCompact="True"
                                            IsChecked="{Binding IsCaseSensitiveEnabled}" />
-                <ui:CommandBarToggleButton IconSource="Code" Label="Regex" IsChecked="{Binding IsRegexEnabled}" />
+                <ui:CommandBarToggleButton IconSource="Code" ToolTip.Tip="Regex"
+                                           IsChecked="{Binding IsRegexEnabled}" />
 
                 <ui:CommandBarSeparator />
 
                 <ui:CommandBarElementContainer Padding="4 0" VerticalContentAlignment="Center">
-                    <ui:NumberBox Minimum="1" Value="{Binding MinimumStringLength}" ToolTip.Tip="Minimum string length" />
+                    <ui:NumberBox Minimum="1"
+                                  Value="{Binding MinimumStringLength}"
+                                  SpinButtonPlacementMode="Inline"
+                                  ToolTip.Tip="Minimum string length" />
                 </ui:CommandBarElementContainer>
 
-                <ui:CommandBarElementContainer HorizontalAlignment="Center" VerticalAlignment="Center" Padding="4 0">
+                <ui:CommandBarElementContainer HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center" 
+                                               Padding="4 0">
                     <DropDownButton Content="{Binding SelectedEncoding.EncodingName}">
                         <DropDownButton.Flyout>
                             <Flyout>
@@ -81,7 +106,8 @@
                 </ui:CommandBarElementContainer>
 
                 <ui:CommandBarElementContainer HorizontalAlignment="Center" VerticalAlignment="Center" Padding="4 0">
-                    <ComboBox ItemsSource="{Binding OffsetFormatters}" SelectedItem="{Binding SelectedOffsetFormatter}">
+                    <ComboBox ItemsSource="{Binding OffsetFormatters}" 
+                              SelectedItem="{Binding SelectedOffsetFormatter}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Name}" />
@@ -142,14 +168,19 @@
                 </ContextMenu>
             </TreeDataGrid.ContextMenu>
         </TreeDataGrid>
-        
+
         <!-- Footer -->
-        <Border IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNotNull}}" Grid.Row="2"
-                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" BorderThickness="0 1 0 0"
+        <Border IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNotNull}}"
+                Grid.Row="2"
+                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="0 1 0 0"
                 Padding="5 5 5 5">
             <Grid ColumnDefinitions="*,Auto,Auto">
                 <TextBlock Grid.Column="0" Text="{Binding ProgressText}" VerticalAlignment="Center" />
-                <Button Grid.Column="2" Margin="10 0 0 0" Content="Cancel" Command="{Binding CancelTask}">
+                <Button Grid.Column="2"
+                        Margin="10 0 0 0"
+                        Content="Cancel"
+                        Command="{Binding CancelTask}">
                     <Button.Styles>
                         <Style Selector="AccessText">
                             <Setter Property="Theme" Value="{DynamicResource CaptionTextBlockStyle}" />

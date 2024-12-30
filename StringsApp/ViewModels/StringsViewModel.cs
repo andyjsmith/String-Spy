@@ -44,7 +44,8 @@ public partial class StringsViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isSearchTextValid = true;
 
-    private Character.CharSet SelectedCharSet => Character.StringToCharSet(SettingsManager.Instance.AppSettings.CharacterSet);
+    private Character.CharSet SelectedCharSet =>
+        Character.StringToCharSet(SettingsManager.Instance.AppSettings.CharacterSet);
 
     // Search
 
