@@ -7,7 +7,9 @@
              x:DataType="vm:StringsViewModel"
              x:CompileBindings="True"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="450"
-             x:Class="StringsApp.StringsView">
+             x:Class="StringsApp.StringsView"
+             DragDrop.AllowDrop="True"
+             Background="Transparent"><!-- need to set background to expand drop target to whole window -->
     <Design.DataContext>
         <vm:StringsViewModel />
     </Design.DataContext>
@@ -45,7 +47,7 @@
                     </StackPanel>
                 </ui:CommandBarElementContainer>
 
-                <ui:CommandBarElementContainer Padding="6 0" 
+                <ui:CommandBarElementContainer Padding="6 0"
                                                IsVisible="{Binding !!SearchProgress}"
                                                Width="32" Margin="0 0 8 0"
                                                ToolTip.Tip="Search progress">
@@ -79,8 +81,8 @@
                                   ToolTip.Tip="Minimum string length" />
                 </ui:CommandBarElementContainer>
 
-                <ui:CommandBarElementContainer HorizontalAlignment="Center" 
-                                               VerticalAlignment="Center" 
+                <ui:CommandBarElementContainer HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
                                                Padding="4 0">
                     <DropDownButton Content="{Binding SelectedEncoding.EncodingName}">
                         <DropDownButton.Flyout>
@@ -106,7 +108,7 @@
                 </ui:CommandBarElementContainer>
 
                 <ui:CommandBarElementContainer HorizontalAlignment="Center" VerticalAlignment="Center" Padding="4 0">
-                    <ComboBox ItemsSource="{Binding OffsetFormatters}" 
+                    <ComboBox ItemsSource="{Binding OffsetFormatters}"
                               SelectedItem="{Binding SelectedOffsetFormatter}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
@@ -143,7 +145,8 @@
             </ui:CommandBar.PrimaryCommands>
 
             <ui:CommandBar.SecondaryCommands>
-                <ui:CommandBarButton Label="Go to..." IconSource="Go" Command="{Binding ShowGoToDialog}" HotKey="Ctrl+G" />
+                <ui:CommandBarButton Label="Go to..." IconSource="Go" Command="{Binding ShowGoToDialog}"
+                                     HotKey="Ctrl+G" />
                 <ui:CommandBarButton Label="Export current strings" IconSource="Save" />
                 <ui:CommandBarButton Label="Export all strings" IconSource="Save" />
                 <ui:CommandBarButton Label="Close file" IconSource="Clear" Command="{Binding CloseFile}" />
@@ -152,6 +155,7 @@
 
         <!-- Strings table -->
         <TreeDataGrid Grid.Row="1"
+                      IsVisible="{Binding LoadedFile, Converter={x:Static ObjectConverters.IsNotNull}}"
                       x:Name="Tree"
                       Source="{Binding StringsSource}"
                       FontFamily="{Binding Font}">
@@ -168,6 +172,13 @@
                 </ContextMenu>
             </TreeDataGrid.ContextMenu>
         </TreeDataGrid>
+
+        <StackPanel Grid.Row="1"
+                    IsVisible="{Binding LoadedFile, Converter={x:Static ObjectConverters.IsNull}}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+            <TextBlock>Drag and drop a file to open</TextBlock>
+        </StackPanel>
 
         <!-- Footer -->
         <Border IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNotNull}}"

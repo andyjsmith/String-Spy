@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using StringsApp.ViewModels;
@@ -15,7 +17,7 @@ public partial class StringsView : UserControl
         DataContextChanged += DataContextChangedHandler;
     }
 
-    void DataContextChangedHandler(object? sender, EventArgs? e)
+    private void DataContextChangedHandler(object? sender, EventArgs? e)
     {
         if (DataContext is not StringsViewModel vm) return;
         
@@ -29,6 +31,17 @@ public partial class StringsView : UserControl
         {
             SearchTextBox.Focus();
         };
+
+        AddHandler(DragDrop.DropEvent, OnDrop);
+    }
+    
+    private void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (DataContext is not StringsViewModel vm) return;
+        IStorageItem? file = e.Data.GetFiles()?.FirstOrDefault();
+        if (file is not IStorageFile) return;
+            
+        vm.OpenFile(file.Path.LocalPath);
     }
 
     private async void Open_Clicked(object? sender, RoutedEventArgs e)
