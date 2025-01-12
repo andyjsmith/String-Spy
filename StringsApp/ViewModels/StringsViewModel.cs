@@ -132,8 +132,9 @@ public partial class StringsViewModel : ViewModelBase
     public void FocusSearchBox() => FocusSearchBoxEvent?.Invoke();
 
     public delegate void SelectionChangedAction(int index);
+
     public event SelectionChangedAction? SelectionChanged;
-    
+
     private bool IsGoToDialogVisible { get; set; } = false;
 
     [RelayCommand]
@@ -141,24 +142,24 @@ public partial class StringsViewModel : ViewModelBase
     {
         // Only allow one instance
         if (IsGoToDialogVisible) return;
-        
+
         IsGoToDialogVisible = true;
         var vm = new GoToDialogViewModel();
         long? val = await vm.ShowAsync();
         IsGoToDialogVisible = false;
         if (val == null) return;
         if (StringsSource.Rows.Count == 0) return;
-        
+
         // Scroll to address
         for (int i = FilteredStrings.Count - 1; i >= 0; i--)
         {
             if (val < FilteredStrings[i].Position) continue;
-            
+
             StringsSource.RowSelection!.SelectedIndex = i;
             SelectionChanged?.Invoke(i);
             return;
         }
-        
+
         // Value is less than first index, so select the first row
         StringsSource.RowSelection!.SelectedIndex = 0;
         SelectionChanged?.Invoke(0);
@@ -384,15 +385,23 @@ public partial class StringsViewModel : ViewModelBase
         ProgressValue = 0;
         ProgressText = $"Loading file: {path}";
 
-        Stopwatch sw = Stopwatch.StartNew();
-        await Task.Run(() =>
+        try
         {
-            RunParallel(path, Environment.ProcessorCount,
-                progress => { ProgressValue = progress * 100.0; },
-                ProcessCancellationTokenSource.Token);
-        }, ProcessCancellationTokenSource.Token);
-        sw.Stop();
-        Debug.WriteLine($"Finished loading file in {sw.Elapsed}");
+            var sw = Stopwatch.StartNew();
+            await Task.Run(() =>
+            {
+                RunParallel(path, Environment.ProcessorCount,
+                    progress => { ProgressValue = progress * 100.0; },
+                    ProcessCancellationTokenSource.Token);
+            }, ProcessCancellationTokenSource.Token);
+            sw.Stop();
+            Debug.WriteLine($"Finished loading file in {sw.Elapsed}");
+        }
+        catch (TaskCanceledException)
+        {
+            Debug.WriteLine("Loading file cancelled");
+        }
+
         ProgressValue = 100;
         ProgressText = null;
     }
