@@ -7,6 +7,19 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringsApp", "StringsApp\St
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringsApp.Desktop", "StringsApp.Desktop\StringsApp.Desktop.csproj", "{9F50DC39-8552-4B8B-98A9-E6AF0BC9775B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringsApp.Browser", "StringsApp.Browser\StringsApp.Browser.csproj", "{1C1A049E-235C-4CD0-B6FA-D53AC418F4DA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringsApp.iOS", "StringsApp.iOS\StringsApp.iOS.csproj", "{EBD9022F-BC83-4846-9A11-6F7F3772DC64}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringsApp.Android", "StringsApp.Android\StringsApp.Android.csproj", "{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringsAppTest", "StringsAppTest\StringsAppTest.csproj", "{87CAF324-F1AE-4CCC-B70F-00632E3C4758}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3DA99C4E-89E3-4049-9C22-0A7EC60D83D8}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Packages.props = Directory.Packages.props
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +34,22 @@ Global
 		{9F50DC39-8552-4B8B-98A9-E6AF0BC9775B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9F50DC39-8552-4B8B-98A9-E6AF0BC9775B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9F50DC39-8552-4B8B-98A9-E6AF0BC9775B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87CAF324-F1AE-4CCC-B70F-00632E3C4758}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87CAF324-F1AE-4CCC-B70F-00632E3C4758}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87CAF324-F1AE-4CCC-B70F-00632E3C4758}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87CAF324-F1AE-4CCC-B70F-00632E3C4758}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C1A049E-235C-4CD0-B6FA-D53AC418F4DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C1A049E-235C-4CD0-B6FA-D53AC418F4DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C1A049E-235C-4CD0-B6FA-D53AC418F4DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C1A049E-235C-4CD0-B6FA-D53AC418F4DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBD9022F-BC83-4846-9A11-6F7F3772DC64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBD9022F-BC83-4846-9A11-6F7F3772DC64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBD9022F-BC83-4846-9A11-6F7F3772DC64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBD9022F-BC83-4846-9A11-6F7F3772DC64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7AD1DAC8-7FBE-49D5-8614-7321233DB82E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
