@@ -1,13 +1,18 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             xmlns:vm="using:StringsApp.ViewModels"
-             xmlns:ui="using:FluentAvalonia.UI.Controls"
-             x:DataType="vm:SettingsViewModel"
-             x:CompileBindings="True"
-             x:Class="StringsApp.SettingsView">
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:vm="using:StringsApp.ViewModels"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        x:DataType="vm:SettingsViewModel"
+        x:CompileBindings="True"
+        x:Class="StringsApp.Views.SettingsWindow"
+        WindowStartupLocation="CenterOwner"
+        Width="900"
+        Height="600"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Settings">
     <Design.DataContext>
         <vm:SettingsViewModel />
     </Design.DataContext>
@@ -144,4 +149,4 @@
             <Button Command="{Binding RestoreDefaultSettings}">Restore Defaults</Button>
         </StackPanel>
     </Grid>
-</UserControl>
+</Window>

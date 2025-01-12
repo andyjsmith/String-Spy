@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -14,6 +15,11 @@ namespace StringsApp.ViewModels;
 
 public partial class SettingsViewModel : ViewModelBase
 {
+    /// <summary>
+    /// Closes the settings window
+    /// </summary>
+    public event EventHandler? OnRequestClose;
+    
     private readonly FluentAvaloniaTheme? _faTheme;
 
     public Dictionary<string, ThemeVariant> AppThemes { get; } =
@@ -108,6 +114,7 @@ public partial class SettingsViewModel : ViewModelBase
     public void DiscardSettings()
     {
         LoadSettings();
+        OnRequestClose?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
@@ -133,6 +140,8 @@ public partial class SettingsViewModel : ViewModelBase
         SettingsManager.Instance.SaveSettings();
 
         UpdateGui();
+        
+        OnRequestClose?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]

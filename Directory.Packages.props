@@ -11,9 +11,7 @@
         <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.2.2"/>
         <PackageVersion Include="Avalonia.Diagnostics" Version="11.2.2"/>
         <PackageVersion Include="Avalonia.Desktop" Version="11.2.2"/>
-        <PackageVersion Include="Avalonia.iOS" Version="11.2.2"/>
         <PackageVersion Include="Avalonia.Browser" Version="11.2.2"/>
-        <PackageVersion Include="Avalonia.Android" Version="11.2.2"/>
 
         <!-- Avalonia extras -->
         <PackageVersion Include="Avalonia.Controls.TreeDataGrid" Version="11.1.0"/>
@@ -21,7 +19,6 @@
         <!-- Avalonia third-party -->
         <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0"/>
         <PackageVersion Include="FluentAvaloniaUI" Version="2.2.0"/>
-        <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.1"/>
 
         <!-- Misc -->
         <PackageVersion Include="System.Text.Encoding.CodePages" Version="9.0.0"/>

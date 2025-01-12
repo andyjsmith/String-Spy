@@ -7,7 +7,7 @@
              x:DataType="vm:StringsViewModel"
              x:CompileBindings="True"
              mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="450"
-             x:Class="StringsApp.StringsView"
+             x:Class="StringsApp.Views.StringsView"
              DragDrop.AllowDrop="True"
              Background="Transparent"><!-- need to set background to expand drop target to whole window -->
     <Design.DataContext>
@@ -150,6 +150,8 @@
                 <ui:CommandBarButton Label="Export current strings" IconSource="Save" />
                 <ui:CommandBarButton Label="Export all strings" IconSource="Save" />
                 <ui:CommandBarButton Label="Close file" IconSource="Clear" Command="{Binding CloseFile}" />
+                <ui:CommandBarSeparator />
+                <ui:CommandBarButton Label="Settings" IconSource="Settings" Click="Settings_OnClick" />
             </ui:CommandBar.SecondaryCommands>
         </ui:CommandBar>
 

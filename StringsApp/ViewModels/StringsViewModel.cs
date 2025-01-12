@@ -128,8 +128,8 @@ public partial class StringsViewModel : ViewModelBase
         LoadedFile = null;
     }
 
-    public event Action FocusSearchBoxEvent;
-    public void FocusSearchBox() => FocusSearchBoxEvent.Invoke();
+    public event Action? FocusSearchBoxEvent;
+    public void FocusSearchBox() => FocusSearchBoxEvent?.Invoke();
 
     public delegate void SelectionChangedAction(int index);
     public event SelectionChangedAction? SelectionChanged;

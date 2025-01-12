@@ -6,7 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using StringsApp.ViewModels;
 
-namespace StringsApp;
+namespace StringsApp.Views;
 
 public partial class StringsView : UserControl
 {
@@ -80,5 +80,12 @@ public partial class StringsView : UserControl
             default:
                 throw new NotSupportedException("Tag is not a supported option");
         }
+    }
+
+    private void Settings_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is not Window window) return;
+        new SettingsWindow().ShowDialog(window);
     }
 }
