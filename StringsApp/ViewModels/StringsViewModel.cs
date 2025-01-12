@@ -371,7 +371,6 @@ public partial class StringsViewModel : ViewModelBase
 
     public async void OpenFile(string path)
     {
-        // TODO: Handle exceptions here (insufficient permissions to open file, etc.)
         ClearResults();
         LoadedFile = path;
         Debug.WriteLine($"Loading file: {path}");
@@ -390,9 +389,16 @@ public partial class StringsViewModel : ViewModelBase
             var sw = Stopwatch.StartNew();
             await Task.Run(() =>
             {
-                RunParallel(path, Environment.ProcessorCount,
-                    progress => { ProgressValue = progress * 100.0; },
-                    ProcessCancellationTokenSource.Token);
+                try
+                {
+                    RunParallel(path, Environment.ProcessorCount,
+                        progress => { ProgressValue = progress * 100.0; },
+                        ProcessCancellationTokenSource.Token);
+                }
+                catch (Exception e)
+                {
+                    ShowErrorDialog(e);
+                }
             }, ProcessCancellationTokenSource.Token);
             sw.Stop();
             Debug.WriteLine($"Finished loading file in {sw.Elapsed}");
@@ -404,6 +410,38 @@ public partial class StringsViewModel : ViewModelBase
 
         ProgressValue = 100;
         ProgressText = null;
+    }
+
+    public Task Export(string path, bool exportAll = false)
+    {
+        return Task.Run(async () =>
+        {
+            ProgressValue = 0;
+            ProgressText = $"Exporting to file: {path}";
+
+            Debug.WriteLine($"Exporting to file: {path}");
+            try
+            {
+                await using FileStream file = File.Open(path, FileMode.Create);
+                IList<StringResult> results = FilteredStrings;
+                if (exportAll) results = AllStringResults;
+
+                byte[] newline = Encoding.UTF8.GetBytes(Environment.NewLine);
+                for (var i = 0; i < results.Count; i++)
+                {
+                    file.Write(Encoding.UTF8.GetBytes(results[i].Content));
+                    file.Write(newline);
+                    if (i % 10000 == 0) ProgressValue = i * 100.0 / results.Count;
+                }
+            }
+            catch (Exception e)
+            {
+                ShowErrorDialog(e);
+            }
+
+            ProgressValue = 100;
+            ProgressText = null;
+        });
     }
 
     public StringsViewModel()

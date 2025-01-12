@@ -20,27 +20,24 @@ public partial class StringsView : UserControl
     private void DataContextChangedHandler(object? sender, EventArgs? e)
     {
         if (DataContext is not StringsViewModel vm) return;
-        
+
         vm.SelectionChanged += index =>
         {
             if (Tree.RowsPresenter == null) return;
             Tree.RowsPresenter.BringIntoView(index);
         };
 
-        vm.FocusSearchBoxEvent += () =>
-        {
-            SearchTextBox.Focus();
-        };
+        vm.FocusSearchBoxEvent += () => SearchTextBox.Focus();
 
         AddHandler(DragDrop.DropEvent, OnDrop);
     }
-    
+
     private void OnDrop(object? sender, DragEventArgs e)
     {
         if (DataContext is not StringsViewModel vm) return;
         IStorageItem? file = e.Data.GetFiles()?.FirstOrDefault();
         if (file is not IStorageFile) return;
-            
+
         vm.OpenFile(file.Path.LocalPath);
     }
 
@@ -57,6 +54,23 @@ public partial class StringsView : UserControl
         if (files.Count == 0) return;
 
         vm.OpenFile(files[0].Path.LocalPath);
+    }
+
+    private async void Export_Clicked(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not StringsViewModel vm) return;
+        if (sender is not Control control) return;
+        if (TopLevel.GetTopLevel(this) is not { } topLevel) return;
+        bool exportAll = control.Tag is "all";
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions()
+        {
+            Title = "Save as",
+            FileTypeChoices = [FilePickerFileTypes.TextPlain, FilePickerFileTypes.All]
+        });
+
+        if (file == null) return;
+
+        await vm.Export(file.Path.LocalPath, exportAll);
     }
 
     private void CopyRow_OnClick(object? sender, RoutedEventArgs e)

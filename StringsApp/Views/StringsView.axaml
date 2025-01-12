@@ -147,8 +147,8 @@
             <ui:CommandBar.SecondaryCommands>
                 <ui:CommandBarButton Label="Go to..." IconSource="Go" Command="{Binding ShowGoToDialog}"
                                      HotKey="Ctrl+G" />
-                <ui:CommandBarButton Label="Export current strings" IconSource="Save" />
-                <ui:CommandBarButton Label="Export all strings" IconSource="Save" />
+                <ui:CommandBarButton Label="Export current strings" IconSource="Save" Click="Export_Clicked" />
+                <ui:CommandBarButton Label="Export all strings" IconSource="Save" Click="Export_Clicked" Tag="all" />
                 <ui:CommandBarButton Label="Close file" IconSource="Clear" Command="{Binding CloseFile}" />
                 <ui:CommandBarSeparator />
                 <ui:CommandBarButton Label="Settings" IconSource="Settings" Click="Settings_OnClick" />
