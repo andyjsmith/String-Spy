@@ -23,19 +23,19 @@ public abstract class OffsetFormatter
 
     class HexadecimalOffsetFormatter : OffsetFormatter
     {
-        public override string Name => "Hexadecimal";
+        public override string Name => "Hex";
         public override string Format(long offset) => "0x" + offset.ToString("X");
     }
 
     class DecimalOffsetFormatter : OffsetFormatter
     {
-        public override string Name => "Decimal";
+        public override string Name => "Dec";
         public override string Format(long offset) => offset.ToString();
     }
 
     class OctalOffsetFormatter : OffsetFormatter
     {
-        public override string Name => "Octal";
+        public override string Name => "Oct";
         public override string Format(long offset) => "0" + Convert.ToString(offset, 8);
     }
 }
