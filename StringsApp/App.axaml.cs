@@ -8,7 +8,7 @@ using StringsApp.Views;
 
 namespace StringsApp;
 
-public partial class App : Application
+public class App : Application
 {
     public override void Initialize()
     {

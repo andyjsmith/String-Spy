@@ -1,19 +1,14 @@
-﻿using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
-using Avalonia.Platform.Storage;
-using StringsApp.ViewModels;
+﻿using Avalonia.Controls;
 
-namespace StringsApp;
+namespace StringsApp.Views;
 
 public partial class GoToDialog : UserControl
 {
     public GoToDialog()
     {
         InitializeComponent();
-        
+
         // Autofocus the text box on load
-        Loaded += (sender, args) => OffsetTextBox.Focus();
+        Loaded += (_, _) => OffsetTextBox.Focus();
     }
 }

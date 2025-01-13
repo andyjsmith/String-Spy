@@ -6,7 +6,7 @@ using FluentAvalonia.UI.Controls;
 
 namespace StringsApp.ViewModels;
 
-public partial class ViewModelBase : ObservableObject
+public class ViewModelBase : ObservableObject
 {
     protected static void ShowErrorDialog(Exception e)
     {

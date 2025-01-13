@@ -7,7 +7,7 @@
              x:DataType="vm:GoToDialogViewModel"
              x:CompileBindings="True"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="150"
-             x:Class="StringsApp.GoToDialog">
+             x:Class="StringsApp.Views.GoToDialog">
     <UserControl.Resources>
         <models:OffsetFormatToShortStringConverter x:Key="OffsetFormatToShortStringConverter" />
     </UserControl.Resources>

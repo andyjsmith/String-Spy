@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using FluentAvalonia.UI.Controls;
 using StringsApp.Models;
+using StringsApp.Views;
 
 namespace StringsApp.ViewModels;
 
