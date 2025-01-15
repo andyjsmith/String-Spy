@@ -118,10 +118,12 @@ public partial class StringsView : UserControl
     private void TreeRowsPresenter_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (TopLevel.GetTopLevel(this) is not Window window) return;
-        if (Tree.RowSelection?.SelectedItem is not StringResult selectedItem) return;
+        if (DataContext is not StringsViewModel vm) return;
+        if (vm.StringsSource.RowSelection?.SelectedItem is not { } selectedItem) return;
+        
         new InspectStringDialog
         {
-            DataContext = new InspectStringViewModel(selectedItem)
+            DataContext = DataContext
         }.ShowDialog(window);
     }
 }

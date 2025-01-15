@@ -43,7 +43,16 @@ public partial class StringsViewModel : ViewModelBase
 
     [ObservableProperty] private FlatTreeDataGridSource<StringResult> _stringsSource;
 
+    partial void OnStringsSourceChanged(FlatTreeDataGridSource<StringResult> value)
+    {
+        if (value.RowSelection == null) return;
+        value.RowSelection.SelectionChanged +=
+            (_, args) => SelectedString = args.SelectedItems.FirstOrDefault();
+    }
+
     [ObservableProperty] private bool _isSearchTextValid = true;
+
+    [ObservableProperty] private StringResult? _selectedString;
 
     private Character.CharSet SelectedCharSet =>
         Character.StringToCharSet(SettingsManager.Instance.AppSettings.CharacterSet);

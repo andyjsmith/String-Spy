@@ -4,37 +4,66 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         xmlns:vm="using:StringsApp.ViewModels"
-        x:DataType="vm:InspectStringViewModel"
+        xmlns:models="using:StringsApp.Models"
+        x:DataType="vm:StringsViewModel"
         x:CompileBindings="True"
         x:Class="StringsApp.Views.InspectStringDialog"
         WindowStartupLocation="CenterOwner"
         Width="600"
         Height="350"
+        MinWidth="300"
+        MinHeight="200"
         Icon="/Assets/avalonia-logo.ico"
         Title="Inspect String">
+    <Window.Resources>
+        <models:HexadecimalConverter x:Key="HexadecimalConverter" />
+        <models:DecimalConverter x:Key="DecimalConverter" />
+        <models:OctalConverter x:Key="OctalConverter" />
+    </Window.Resources>
     <Grid RowDefinitions="Auto,*" Margin="5">
         <Grid.Styles>
             <Style Selector="TextBlock, TextBox">
                 <Setter Property="Margin" Value="5" />
             </Style>
             <Style Selector="TextBlock">
-                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
             <Style Selector="TextBox">
-                <Setter Property="FontFamily" Value="{Binding Font}"/>
+                <Setter Property="FontFamily" Value="{Binding Font}" />
+                <Setter Property="IsReadOnly" Value="True" />
             </Style>
         </Grid.Styles>
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" RowDefinitions="*,*,*">
-            <TextBlock Grid.Column="0" Grid.Row="0">Start</TextBlock>
-            <TextBox Grid.Column="1" Grid.Row="0" IsReadOnly="True" Text="{Binding StringResult.Position}"/>
-            <TextBlock Grid.Column="0" Grid.Row="1">End</TextBlock>
-            <TextBox Grid.Column="1" Grid.Row="1" IsReadOnly="True" Text="{Binding StringResult.EndPosition}"/>
-            <TextBlock Grid.Column="0" Grid.Row="2">Length</TextBlock>
-            <TextBox Grid.Column="1" Grid.Row="2" IsReadOnly="True" Text="{Binding StringResult.Length}"/>
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto">
+            <TextBlock Grid.Row="0" Grid.Column="1" TextAlignment="Center">Hex</TextBlock>
+            <TextBlock Grid.Row="0" Grid.Column="2" TextAlignment="Center">Dec</TextBlock>
+            <TextBlock Grid.Row="0" Grid.Column="3" TextAlignment="Center">Oct</TextBlock>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" TextAlignment="Right">Start</TextBlock>
+            <TextBox Grid.Row="1" Grid.Column="1"
+                     Text="{Binding SelectedString.Position, FallbackValue=None, Converter={StaticResource HexadecimalConverter}}" />
+            <TextBox Grid.Row="1" Grid.Column="2"
+                     Text="{Binding SelectedString.Position, FallbackValue=None, Converter={StaticResource DecimalConverter}}" />
+            <TextBox Grid.Row="1" Grid.Column="3"
+                     Text="{Binding SelectedString.Position, FallbackValue=None, Converter={StaticResource OctalConverter}}" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" TextAlignment="Right">End</TextBlock>
+            <TextBox Grid.Row="2" Grid.Column="1"
+                     Text="{Binding SelectedString.EndPosition, FallbackValue=None, Converter={StaticResource HexadecimalConverter}}" />
+            <TextBox Grid.Row="2" Grid.Column="2"
+                     Text="{Binding SelectedString.EndPosition, FallbackValue=None, Converter={StaticResource DecimalConverter}}" />
+            <TextBox Grid.Row="2" Grid.Column="3"
+                     Text="{Binding SelectedString.EndPosition, FallbackValue=None, Converter={StaticResource OctalConverter}}" />
+
+            <TextBlock Grid.Row="3" Grid.Column="0" TextAlignment="Right">Length</TextBlock>
+            <TextBox Grid.Row="3" Grid.Column="1"
+                     Text="{Binding SelectedString.Length, FallbackValue=None, Converter={StaticResource HexadecimalConverter}}" />
+            <TextBox Grid.Row="3" Grid.Column="2"
+                     Text="{Binding SelectedString.Length, FallbackValue=None, Converter={StaticResource DecimalConverter}}" />
+            <TextBox Grid.Row="3" Grid.Column="3"
+                     Text="{Binding SelectedString.Length, FallbackValue=None, Converter={StaticResource OctalConverter}}" />
         </Grid>
         <TextBox Grid.Row="1"
-                 Text="{Binding StringResult.Content}"
-                 IsReadOnly="True"
+                 Text="{Binding SelectedString.Content, FallbackValue=None}"
                  AcceptsReturn="True"
                  TextWrapping="Wrap" />
     </Grid>
