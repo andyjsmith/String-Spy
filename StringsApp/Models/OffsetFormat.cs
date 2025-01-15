@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Avalonia.Data.Converters;
 
@@ -38,6 +39,24 @@ public abstract class OffsetFormatter
         public override string Name => "Oct";
         public override string Format(long offset) => "0" + Convert.ToString(offset, 8);
     }
+    
+    public static OffsetFormatter StringToOffsetFormatter(string s)
+    {
+        return s switch
+        {
+            "Hexadecimal" => Hexadecimal,
+            "Octal" => Octal,
+            "Decimal" => Decimal,
+            _ => Hexadecimal
+        };
+    }
+
+    public static IReadOnlyList<OffsetFormatter> Formatters { get; } = 
+    [
+        Hexadecimal,
+        Decimal,
+        Octal
+    ];
 }
 
 public class OffsetFormatToShortStringConverter : IValueConverter

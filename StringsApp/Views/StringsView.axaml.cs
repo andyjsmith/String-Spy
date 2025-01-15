@@ -1,13 +1,10 @@
 using System;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using StringsApp.Strings;
 using StringsApp.ViewModels;
 
 namespace StringsApp.Views;
@@ -118,12 +115,7 @@ public partial class StringsView : UserControl
     private void TreeRowsPresenter_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (TopLevel.GetTopLevel(this) is not Window window) return;
-        if (DataContext is not StringsViewModel vm) return;
-        if (vm.StringsSource.RowSelection?.SelectedItem is not { } selectedItem) return;
-        
-        new InspectStringDialog
-        {
-            DataContext = DataContext
-        }.ShowDialog(window);
+
+        new InspectStringDialog { DataContext = DataContext }.ShowDialog(window);
     }
 }

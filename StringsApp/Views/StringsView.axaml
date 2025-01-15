@@ -108,7 +108,7 @@
                 </ui:CommandBarElementContainer>
 
                 <ui:CommandBarElementContainer HorizontalAlignment="Center" VerticalAlignment="Center" Padding="4 0">
-                    <ComboBox ItemsSource="{Binding OffsetFormatters}"
+                    <ComboBox ItemsSource="{Binding AllOffsetFormatters}"
                               SelectedItem="{Binding SelectedOffsetFormatter}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>

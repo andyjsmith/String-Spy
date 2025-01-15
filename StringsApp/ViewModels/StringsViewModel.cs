@@ -11,7 +11,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -31,16 +30,15 @@ public partial class StringsViewModel : ViewModelBase
     [ObservableProperty]
     private int _minimumStringLength = SettingsManager.Instance.AppSettings.DefaultMinimumStringLength;
 
+    partial void OnMinimumStringLengthChanged(int value) => ReloadFile();
+
     [ObservableProperty] private FontFamily _font = SettingsManager.Instance.AppSettings.Font;
 
-    partial void OnMinimumStringLengthChanged(int value) => ReloadFile();
 
     private const int BlockSize = 4 << 20; // 4 MiB
 
     [ObservableProperty] private List<StringResult> _allStringResults = [];
-
     [ObservableProperty] private ObservableCollection<StringResult> _filteredStrings = [];
-
     [ObservableProperty] private FlatTreeDataGridSource<StringResult> _stringsSource;
 
     partial void OnStringsSourceChanged(FlatTreeDataGridSource<StringResult> value)
@@ -63,7 +61,6 @@ public partial class StringsViewModel : ViewModelBase
     private CancellationTokenSource _searchTaskCts = new();
 
     [ObservableProperty] private int _searchProgress;
-
     [ObservableProperty] private string _searchText = "";
 
     partial void OnSearchTextChanged(string value)
@@ -241,7 +238,7 @@ public partial class StringsViewModel : ViewModelBase
                         int end = (i == threadCount - 1) ? AllStringResults.Count : start + chunkSize;
                         Debug.WriteLine(
                             $"Starting string processor: {i + 1:D2}/{threadCount}, start: {start}, end: {end}");
-                        results[i] = new List<StringResult>();
+                        results[i] = [];
                         for (int j = start; j < end; j++)
                         {
                             if (ct.IsCancellationRequested)
@@ -254,17 +251,15 @@ public partial class StringsViewModel : ViewModelBase
                                 results[i].Add(AllStringResults[j]);
                             }
 
-                            if ((j - start) % 100000 == 0)
-                            {
+                            if ((j - start) % 100000 != 0) continue;
 #pragma warning disable MVVMTK0034
-                                Interlocked.Add(ref _searchProgress, 100000);
+                            Interlocked.Add(ref _searchProgress, 100000);
 #pragma warning restore MVVMTK0034
-                                OnPropertyChanged(nameof(SearchProgress));
-                            }
+                            OnPropertyChanged(nameof(SearchProgress));
                         }
                     });
 
-                    foreach (List<StringResult> result in results)
+                    foreach (var result in results)
                     {
                         filtered.AddRange(result);
                     }
@@ -272,7 +267,7 @@ public partial class StringsViewModel : ViewModelBase
                 else
                 {
                     int i = -1;
-                    foreach (var s in AllStringResults)
+                    foreach (StringResult s in AllStringResults)
                     {
                         i++;
                         if (i % 100000 == 0)
@@ -325,13 +320,15 @@ public partial class StringsViewModel : ViewModelBase
     }
 
     [ObservableProperty] private OffsetFormatter _selectedOffsetFormatter =
-        StringToOffsetFormatter(SettingsManager.Instance.AppSettings.DefaultAddressFormat);
+        OffsetFormatter.StringToOffsetFormatter(SettingsManager.Instance.AppSettings.DefaultAddressFormat);
 
     partial void OnSelectedOffsetFormatterChanged(OffsetFormatter value)
     {
         // Recreate the entire StringsSource to force the tree to rerender
         StringsSource = CreateStringsSource(value);
     }
+
+    public static IReadOnlyList<OffsetFormatter> AllOffsetFormatters => OffsetFormatter.Formatters;
 
     private FlatTreeDataGridSource<StringResult> CreateStringsSource(OffsetFormatter offsetFormatter)
     {
@@ -354,24 +351,6 @@ public partial class StringsViewModel : ViewModelBase
             }
         };
     }
-
-    private static OffsetFormatter StringToOffsetFormatter(string s)
-    {
-        return s switch
-        {
-            "Hexadecimal" => OffsetFormatter.Hexadecimal,
-            "Octal" => OffsetFormatter.Octal,
-            "Decimal" => OffsetFormatter.Decimal,
-            _ => OffsetFormatter.Hexadecimal
-        };
-    }
-
-    public List<OffsetFormatter> OffsetFormatters { get; } =
-    [
-        OffsetFormatter.Hexadecimal,
-        OffsetFormatter.Decimal,
-        OffsetFormatter.Octal
-    ];
 
     private void ReloadFile()
     {
@@ -499,18 +478,18 @@ public partial class StringsViewModel : ViewModelBase
         FileInfo fileInfo = new(path);
         long fileSize = fileInfo.Length;
         long chunkSize = fileSize / threadCount;
-        long[] bytesProcessed = new long[threadCount];
+        var bytesProcessed = new long[threadCount];
         var bag = new List<StringResult>[threadCount];
         if (threadCount == 1)
         {
             long start = 0;
             long end = fileSize;
             Debug.WriteLine($"Starting chunk processor: start: {start}, end: {end}");
-            var stringResults = ProcessChunk(path, start, end, SelectedEncoding, SelectedCharSet, ct, b =>
+            var stringResults = ProcessChunk(path, start, end, SelectedEncoding, SelectedCharSet, b =>
             {
                 bytesProcessed[0] = b;
                 progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
-            });
+            }, ct);
             bag[0] = stringResults;
         }
         else
@@ -521,17 +500,17 @@ public partial class StringsViewModel : ViewModelBase
                 long end = (i == threadCount - 1) ? fileSize : start + chunkSize;
                 Debug.WriteLine(
                     $"Starting parallel chunk processor: {i + 1:D2}/{threadCount}, start: {start}, end: {end}");
-                var results = ProcessChunk(path, start, end, SelectedEncoding, SelectedCharSet, ct, b =>
+                var results = ProcessChunk(path, start, end, SelectedEncoding, SelectedCharSet, b =>
                 {
                     bytesProcessed[i] = b;
                     progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
-                });
+                }, ct);
                 bag[i] = results;
             });
         }
 
         List<StringResult> results = [];
-        foreach (List<StringResult> result in bag)
+        foreach (var result in bag)
         {
             results.AddRange(result);
         }
@@ -552,7 +531,7 @@ public partial class StringsViewModel : ViewModelBase
     }
 
     private List<StringResult> ProcessChunk(string path, long start, long end, Encoding encoding,
-        Character.CharSet charSet, CancellationToken ct, Action<long>? progressCallback)
+        Character.CharSet charSet, Action<long>? progressCallback, CancellationToken ct)
     {
         // Skip to this chunk's start point
         using FileStream fs = new(path, FileMode.Open, FileAccess.Read);
