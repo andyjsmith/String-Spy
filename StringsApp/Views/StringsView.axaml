@@ -160,7 +160,8 @@
                       IsVisible="{Binding LoadedFile, Converter={x:Static ObjectConverters.IsNotNull}}"
                       x:Name="Tree"
                       Source="{Binding StringsSource}"
-                      FontFamily="{Binding Font}">
+                      FontFamily="{Binding Font}"
+                      TemplateApplied="Tree_OnTemplateApplied">
             <TreeDataGrid.Styles>
                 <Style Selector="ScrollBar">
                     <Setter Property="AllowAutoHide" Value="False" />

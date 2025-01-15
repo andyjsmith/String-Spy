@@ -1,0 +1,41 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:vm="using:StringsApp.ViewModels"
+        x:DataType="vm:InspectStringViewModel"
+        x:CompileBindings="True"
+        x:Class="StringsApp.Views.InspectStringDialog"
+        WindowStartupLocation="CenterOwner"
+        Width="600"
+        Height="350"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Inspect String">
+    <Grid RowDefinitions="Auto,*" Margin="5">
+        <Grid.Styles>
+            <Style Selector="TextBlock, TextBox">
+                <Setter Property="Margin" Value="5" />
+            </Style>
+            <Style Selector="TextBlock">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+            <Style Selector="TextBox">
+                <Setter Property="FontFamily" Value="{Binding Font}"/>
+            </Style>
+        </Grid.Styles>
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" RowDefinitions="*,*,*">
+            <TextBlock Grid.Column="0" Grid.Row="0">Start</TextBlock>
+            <TextBox Grid.Column="1" Grid.Row="0" IsReadOnly="True" Text="{Binding StringResult.Position}"/>
+            <TextBlock Grid.Column="0" Grid.Row="1">End</TextBlock>
+            <TextBox Grid.Column="1" Grid.Row="1" IsReadOnly="True" Text="{Binding StringResult.EndPosition}"/>
+            <TextBlock Grid.Column="0" Grid.Row="2">Length</TextBlock>
+            <TextBox Grid.Column="1" Grid.Row="2" IsReadOnly="True" Text="{Binding StringResult.Length}"/>
+        </Grid>
+        <TextBox Grid.Row="1"
+                 Text="{Binding StringResult.Content}"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap" />
+    </Grid>
+</Window>

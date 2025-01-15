@@ -1,9 +1,13 @@
 using System;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using StringsApp.Strings;
 using StringsApp.ViewModels;
 
 namespace StringsApp.Views;
@@ -98,8 +102,26 @@ public partial class StringsView : UserControl
 
     private void Settings_OnClick(object? sender, RoutedEventArgs e)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is not Window window) return;
+        if (TopLevel.GetTopLevel(this) is not Window window) return;
         new SettingsWindow().ShowDialog(window);
+    }
+
+    private void Tree_OnTemplateApplied(object? sender, TemplateAppliedEventArgs e)
+    {
+        if (sender is not TreeDataGrid tree) return;
+        if (tree.RowsPresenter != null) tree.RowsPresenter.DoubleTapped += TreeRowsPresenter_OnDoubleTapped;
+    }
+
+    /// <summary>
+    /// Handler for opening the string inspection dialog
+    /// </summary>
+    private void TreeRowsPresenter_OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (TopLevel.GetTopLevel(this) is not Window window) return;
+        if (Tree.RowSelection?.SelectedItem is not StringResult selectedItem) return;
+        new InspectStringDialog
+        {
+            DataContext = new InspectStringViewModel(selectedItem)
+        }.ShowDialog(window);
     }
 }
