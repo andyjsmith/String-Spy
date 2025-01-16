@@ -138,6 +138,8 @@
                         </ui:NumberBox>
                     </ui:SettingsExpander.Footer>
                 </ui:SettingsExpander>
+
+                <TextBlock FontSize="12" Text="{Binding CurrentVersion, StringFormat='Version: {0}'}" />
             </StackPanel>
         </ScrollViewer>
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16" Spacing="16">

@@ -18,6 +18,9 @@ public partial class SettingsViewModel : ViewModelBase
     /// Closes the settings window
     /// </summary>
     public event EventHandler? OnRequestClose;
+    
+    public static string CurrentVersion =>
+        typeof(App).Assembly.GetName().Version?.ToString() ?? "unknown";
 
     public static Dictionary<string, ThemeVariant> AppThemes => SettingsManager.AppThemes;
     [ObservableProperty] private string _selectedAppTheme = null!;
