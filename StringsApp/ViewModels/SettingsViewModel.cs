@@ -4,7 +4,6 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
-using FluentAvalonia.Styling;
 using System.Linq;
 using System.Text;
 using CommunityToolkit.Mvvm.Input;
@@ -19,26 +18,14 @@ public partial class SettingsViewModel : ViewModelBase
     /// Closes the settings window
     /// </summary>
     public event EventHandler? OnRequestClose;
-    
-    private readonly FluentAvaloniaTheme? _faTheme;
 
-    public Dictionary<string, ThemeVariant> AppThemes { get; } =
-        new()
-        {
-            { "System", ThemeVariant.Default },
-            { "Light", ThemeVariant.Light },
-            { "Dark", ThemeVariant.Dark },
-            { "High Contrast", FluentAvaloniaTheme.HighContrastTheme }
-        };
-
+    public static Dictionary<string, ThemeVariant> AppThemes => SettingsManager.AppThemes;
     [ObservableProperty] private string _selectedAppTheme = null!;
 
     private void UpdateGui()
     {
-        if (_faTheme == null) return; // something is really wrong
-        var variant = AppThemes.GetValueOrDefault(SelectedAppTheme, ThemeVariant.Default);
-        Application.Current!.RequestedThemeVariant = variant;
-        _faTheme.PreferSystemTheme = variant == ThemeVariant.Default;
+        Application.Current!.RequestedThemeVariant =
+            SettingsManager.AppThemes.GetValueOrDefault(SelectedAppTheme, ThemeVariant.Default);
     }
 
     public List<string> Fonts { get; } = ["<default>"];
@@ -67,13 +54,6 @@ public partial class SettingsViewModel : ViewModelBase
 
     public SettingsViewModel()
     {
-        foreach (IStyle style in Application.Current!.Styles)
-        {
-            if (style is not FluentAvaloniaTheme theme) continue;
-            _faTheme = theme;
-            break;
-        }
-
         foreach (FontFamily font in FontManager.Current.SystemFonts.OrderBy(f => f.Name))
         {
             Fonts.Add(font.Name);
@@ -106,7 +86,7 @@ public partial class SettingsViewModel : ViewModelBase
         DefaultRegex = appSettings.DefaultUseRegex;
 
         ParallelSearchThreshold = appSettings.ParallelSearchThreshold;
-        
+
         UpdateGui();
     }
 
@@ -140,7 +120,7 @@ public partial class SettingsViewModel : ViewModelBase
         SettingsManager.Instance.SaveSettings();
 
         UpdateGui();
-        
+
         OnRequestClose?.Invoke(this, EventArgs.Empty);
     }
 

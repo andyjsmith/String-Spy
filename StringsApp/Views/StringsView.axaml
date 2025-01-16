@@ -166,6 +166,9 @@
                 <Style Selector="ScrollBar">
                     <Setter Property="AllowAutoHide" Value="False" />
                 </Style>
+                <Style Selector="TreeDataGridTextCell, TreeDataGridColumnHeader">
+                    <Setter Property="Padding" Value="8 2 8 2"/>
+                </Style>
             </TreeDataGrid.Styles>
             <TreeDataGrid.ContextMenu>
                 <ContextMenu IsEnabled="{Binding !!StringsSource.RowSelection.Count}">
