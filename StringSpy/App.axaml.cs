@@ -1,0 +1,44 @@
+﻿using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Data.Core.Plugins;
+using Avalonia.Markup.Xaml;
+using StringSpy.Settings;
+using StringSpy.ViewModels;
+using StringSpy.Views;
+
+namespace StringSpy;
+
+public class App : Application
+{
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        SettingsManager.Instance.LoadSettings();
+    }
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        // Line below is needed to remove Avalonia data validation.
+        // Without this line you will get duplicate validations from both Avalonia and CT
+#pragma warning disable IL2026
+        BindingPlugins.DataValidators.RemoveAt(0);
+#pragma warning restore IL2026
+
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.MainWindow = new MainWindow
+            {
+                DataContext = new StringsViewModel()
+            };
+        }
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
+        {
+            singleViewPlatform.MainView = new MainWindow
+            {
+                DataContext = new StringsViewModel()
+            };
+        }
+
+        base.OnFrameworkInitializationCompleted();
+    }
+}
