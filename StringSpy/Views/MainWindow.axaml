@@ -8,7 +8,7 @@
         x:Class="StringSpy.Views.MainWindow"
         x:DataType="vm:StringsViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Strings">
+        Title="StringSpy">
 
     <Design.DataContext>
         <vm:StringsViewModel />
