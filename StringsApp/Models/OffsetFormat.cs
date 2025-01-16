@@ -9,8 +9,7 @@ public enum OffsetFormat
 {
     Hexadecimal,
     Decimal,
-    Octal,
-    Binary
+    Octal
 }
 
 public abstract class OffsetFormatter
@@ -39,7 +38,7 @@ public abstract class OffsetFormatter
         public override string Name => "Oct";
         public override string Format(long offset) => "0" + Convert.ToString(offset, 8);
     }
-    
+
     public static OffsetFormatter StringToOffsetFormatter(string s)
     {
         return s switch
@@ -51,7 +50,7 @@ public abstract class OffsetFormatter
         };
     }
 
-    public static IReadOnlyList<OffsetFormatter> Formatters { get; } = 
+    public static IReadOnlyList<OffsetFormatter> Formatters { get; } =
     [
         Hexadecimal,
         Decimal,
@@ -69,7 +68,6 @@ public class OffsetFormatToShortStringConverter : IValueConverter
             OffsetFormat.Hexadecimal => "Hex",
             OffsetFormat.Decimal => "Dec",
             OffsetFormat.Octal => "Oct",
-            OffsetFormat.Binary => "Bin",
             _ => null
         };
     }

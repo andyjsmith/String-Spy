@@ -16,8 +16,7 @@ public partial class GoToDialogViewModel : ViewModelBase
     [
         OffsetFormat.Hexadecimal,
         OffsetFormat.Decimal,
-        OffsetFormat.Octal,
-        OffsetFormat.Binary
+        OffsetFormat.Octal
     ];
 
     [ObservableProperty] private string _value = string.Empty;
@@ -36,7 +35,6 @@ public partial class GoToDialogViewModel : ViewModelBase
                 OffsetFormat.Hexadecimal => Convert.ToInt64(Value, 16),
                 OffsetFormat.Decimal => Convert.ToInt64(Value, 10),
                 OffsetFormat.Octal => Convert.ToInt64(Value, 8),
-                OffsetFormat.Binary => Convert.ToInt64(Value, 2),
                 _ => null
             };
             if (num == null) IsValid = false;
@@ -67,28 +65,26 @@ public partial class GoToDialogViewModel : ViewModelBase
         };
 
         ContentDialogResult result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
+        if (result != ContentDialogResult.Primary) return null;
+        
+        try
         {
-            try
+            return Format switch
             {
-                return Format switch
-                {
-                    OffsetFormat.Hexadecimal => Convert.ToInt64(Value, 16),
-                    OffsetFormat.Decimal => Convert.ToInt64(Value, 10),
-                    OffsetFormat.Octal => Convert.ToInt64(Value, 8),
-                    OffsetFormat.Binary => Convert.ToInt64(Value, 2),
-                    _ => null
-                };
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-            }
-            catch (FormatException)
-            {
-            }
-            catch (ArgumentException)
-            {
-            }
+                OffsetFormat.Hexadecimal => Convert.ToInt64(Value, 16),
+                OffsetFormat.Decimal => Convert.ToInt64(Value, 10),
+                OffsetFormat.Octal => Convert.ToInt64(Value, 8),
+                _ => null
+            };
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+        }
+        catch (FormatException)
+        {
+        }
+        catch (ArgumentException)
+        {
         }
 
         return null;

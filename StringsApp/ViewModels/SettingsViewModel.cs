@@ -31,7 +31,7 @@ public partial class SettingsViewModel : ViewModelBase
     public List<string> Fonts { get; } = ["<default>"];
     [ObservableProperty] private string _selectedFont = null!;
 
-    public List<string> AddressFormats { get; } = ["Binary", "Octal", "Decimal", "Hexadecimal"];
+    public List<string> AddressFormats { get; } = ["Hexadecimal", "Decimal", "Octal"];
 
     [ObservableProperty] private string _defaultAddressFormat = null!;
 
