@@ -34,6 +34,10 @@ public partial class StringsViewModel : ViewModelBase
 
     [ObservableProperty] private FontFamily _font = SettingsManager.Instance.AppSettings.Font;
 
+    partial void OnFontChanged(FontFamily value) => OnPropertyChanged(nameof(Font));
+
+    public static FontFamily FontValue => SettingsManager.Instance.AppSettings.FontValue;
+
 
     private const int BlockSize = 4 << 20; // 4 MiB
 

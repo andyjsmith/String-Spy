@@ -16,6 +16,7 @@ public class AppSettings
     // The values here are the defaults
     public string AppTheme { get; set; } = "System";
     public string Font { get; set; } = "<default>";
+    public string FontValue => Font == "<default>" ? "Consolas, San Francisco, Monaco, Courier New" : Font;
     public string DefaultAddressFormat { get; set; } = "Hexadecimal";
     public bool GroupDuplicateStrings { get; set; } = false;
 

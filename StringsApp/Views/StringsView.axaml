@@ -160,14 +160,14 @@
                       IsVisible="{Binding LoadedFile, Converter={x:Static ObjectConverters.IsNotNull}}"
                       x:Name="Tree"
                       Source="{Binding StringsSource}"
-                      FontFamily="{Binding Font}"
+                      FontFamily="{Binding FontValue}"
                       TemplateApplied="Tree_OnTemplateApplied">
             <TreeDataGrid.Styles>
                 <Style Selector="ScrollBar">
                     <Setter Property="AllowAutoHide" Value="False" />
                 </Style>
                 <Style Selector="TreeDataGridTextCell, TreeDataGridColumnHeader">
-                    <Setter Property="Padding" Value="8 2 8 2"/>
+                    <Setter Property="Padding" Value="8 2 8 2" />
                 </Style>
             </TreeDataGrid.Styles>
             <TreeDataGrid.ContextMenu>
