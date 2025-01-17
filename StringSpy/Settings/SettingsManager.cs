@@ -66,7 +66,7 @@ public class SettingsManager
 
     private string SettingsPath => Path.Combine(SettingsDirectory, "settings.json");
 
-    public AppSettings AppSettings
+    public AppSettings Settings
     {
         get
         {
@@ -141,6 +141,6 @@ public class SettingsManager
     {
         Directory.CreateDirectory(SettingsDirectory);
         using FileStream stream = new(SettingsPath, FileMode.Create);
-        JsonSerializer.Serialize(stream, AppSettings, SourceGenerationContext.Default.AppSettings);
+        JsonSerializer.Serialize(stream, Settings, SourceGenerationContext.Default.AppSettings);
     }
 }

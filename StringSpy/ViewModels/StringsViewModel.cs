@@ -28,16 +28,9 @@ public partial class StringsViewModel : ViewModelBase
     // Strings
 
     [ObservableProperty]
-    private int _minimumStringLength = SettingsManager.Instance.AppSettings.DefaultMinimumStringLength;
+    private int _minimumStringLength = SettingsManager.Instance.Settings.DefaultMinimumStringLength;
 
     partial void OnMinimumStringLengthChanged(int value) => ReloadFile();
-
-    [ObservableProperty] private FontFamily _font = SettingsManager.Instance.AppSettings.Font;
-
-    partial void OnFontChanged(FontFamily value) => OnPropertyChanged(nameof(Font));
-
-    public static FontFamily FontValue => SettingsManager.Instance.AppSettings.FontValue;
-
 
     private const int BlockSize = 4 << 20; // 4 MiB
 
@@ -56,8 +49,16 @@ public partial class StringsViewModel : ViewModelBase
 
     [ObservableProperty] private StringResult? _selectedString;
 
-    private Character.CharSet SelectedCharSet =>
-        Character.StringToCharSet(SettingsManager.Instance.AppSettings.CharacterSet);
+    private static Character.CharSet SelectedCharSet =>
+        Character.StringToCharSet(SettingsManager.Instance.Settings.CharacterSet);
+
+    // UI
+
+    [ObservableProperty] private FontFamily _font = SettingsManager.Instance.Settings.Font;
+
+    partial void OnFontChanged(FontFamily value) => OnPropertyChanged(nameof(Font));
+
+    public static FontFamily FontValue => SettingsManager.Instance.Settings.FontValue;
 
     // Search
 
@@ -69,17 +70,26 @@ public partial class StringsViewModel : ViewModelBase
 
     partial void OnSearchTextChanged(string value)
     {
-        if (SettingsManager.Instance.AppSettings.AutomaticSearch) RunSearch();
+        if (SettingsManager.Instance.Settings.AutomaticSearch) RunSearch();
     }
 
-    [ObservableProperty] private bool _isRegexEnabled = SettingsManager.Instance.AppSettings.DefaultUseRegex;
+    /// <summary>
+    /// Treat string search text as regex
+    /// </summary>
+    [ObservableProperty] private bool _isRegexEnabled = SettingsManager.Instance.Settings.DefaultUseRegex;
     partial void OnIsRegexEnabledChanged(bool value) => RunSearch();
 
-    [ObservableProperty]
-    private bool _isCaseSensitiveEnabled = SettingsManager.Instance.AppSettings.DefaultCaseSensitive;
-
+    /// <summary>
+    /// Treat string search text as case-insensitive
+    /// </summary>
+    [ObservableProperty] private bool _isCaseSensitiveEnabled = SettingsManager.Instance.Settings.DefaultCaseSensitive;
     partial void OnIsCaseSensitiveEnabledChanged(bool value) => RunSearch();
 
+    /// <summary>
+    /// Validate that the given text is valid (non-zero length and valid regex if enabled)
+    /// </summary>
+    /// <param name="searchText">Text to search for</param>
+    /// <returns>True if valid, false if invalid</returns>
     private bool ValidateSearchText(string searchText)
     {
         if (searchText.Length == 0) return true;
@@ -99,13 +109,14 @@ public partial class StringsViewModel : ViewModelBase
         return true;
     }
 
+    /// <summary>
+    /// Cancel the search task if running
+    /// </summary>
     private void CancelSearch()
     {
-        if (!SearchTask?.IsCompleted ?? false)
-        {
-            _searchTaskCts.Cancel();
-            Debug.WriteLine("Cancelling search task");
-        }
+        if (SearchTask?.IsCompleted ?? true) return;
+        _searchTaskCts.Cancel();
+        Debug.WriteLine("Cancelling search task");
     }
 
     [ObservableProperty] private string? _progressText;
@@ -113,6 +124,9 @@ public partial class StringsViewModel : ViewModelBase
 
     private CancellationTokenSource? ProcessCancellationTokenSource { get; set; }
 
+    /// <summary>
+    /// Cancel the current strings loading task
+    /// </summary>
     [RelayCommand]
     public void CancelTask()
     {
@@ -123,31 +137,40 @@ public partial class StringsViewModel : ViewModelBase
 
     [ObservableProperty] private string? _loadedFile;
 
-    private void ClearResults()
-    {
-        CancelSearch();
-        AllStringResults.Clear();
-        AllStringResults = [];
-        FilteredStrings.Clear();
-        FilteredStrings = [];
-    }
-
+    /// <summary>
+    /// Remove all string results, cancel search, and unset the open file
+    /// </summary>
     [RelayCommand]
     public void CloseFile()
     {
-        ClearResults();
+        CancelSearch();
+        AllStringResults.Clear();
+        FilteredStrings.Clear();
         LoadedFile = null;
     }
 
+    /// <summary>
+    /// Event to trigger code-behind to focus the search box
+    /// </summary>
     public event Action? FocusSearchBoxEvent;
+
+    /// <summary>
+    /// Put focus / the cursor into the search box 
+    /// </summary>
     public void FocusSearchBox() => FocusSearchBoxEvent?.Invoke();
 
     public delegate void SelectionChangedAction(int index);
 
+    /// <summary>
+    /// Event to tell code-behind that the tree row selection has changed, since TreeDataGrid doesn't yet support this
+    /// </summary>
     public event SelectionChangedAction? SelectionChanged;
 
     private bool IsGoToDialogVisible { get; set; } = false;
 
+    /// <summary>
+    /// Open the goto dialog and select and scroll to the resulting string
+    /// </summary>
     [RelayCommand]
     public async Task ShowGoToDialog()
     {
@@ -176,6 +199,9 @@ public partial class StringsViewModel : ViewModelBase
         SelectionChanged?.Invoke(0);
     }
 
+    /// <summary>
+    /// Validate search text and run search
+    /// </summary>
     [RelayCommand]
     public void RunSearch()
     {
@@ -187,6 +213,17 @@ public partial class StringsViewModel : ViewModelBase
         SearchTask = Search(SearchText, _searchTaskCts.Token);
     }
 
+    /// <summary>
+    /// How many strings to search between progress update events
+    /// </summary>
+    private const int SearchProgressUpdateInterval = 10_000;
+
+    /// <summary>
+    /// Search all strings for the provided text using options set in the GUI and settings
+    /// </summary>
+    /// <param name="searchText">Text to search for</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Search task</returns>
     private Task Search(string searchText, CancellationToken ct = default)
     {
         return Task.Run(() =>
@@ -203,7 +240,12 @@ public partial class StringsViewModel : ViewModelBase
 
             try
             {
-                bool useMultithreadedSearch = true;
+                bool useMultithreadedSearch = SettingsManager.Instance.Settings.ParallelSearchThreshold switch
+                {
+                    < 0 => false,
+                    0 => true,
+                    _ => AllStringResults.Count >= SettingsManager.Instance.Settings.ParallelSearchThreshold
+                };
 
                 Func<StringResult, bool> filterFunc;
                 if (IsRegexEnabled)
@@ -214,7 +256,7 @@ public partial class StringsViewModel : ViewModelBase
                     Regex re;
                     try
                     {
-                        re = new(searchText, regexOptions);
+                        re = new Regex(searchText, regexOptions);
                     }
                     catch (ArgumentException)
                     {
@@ -225,7 +267,7 @@ public partial class StringsViewModel : ViewModelBase
                 }
                 else
                 {
-                    StringComparison comparisonType = StringComparison.OrdinalIgnoreCase;
+                    var comparisonType = StringComparison.OrdinalIgnoreCase;
                     if (IsCaseSensitiveEnabled) comparisonType = StringComparison.Ordinal;
                     filterFunc = s => s.Content.Contains(searchText, comparisonType);
                 }
@@ -235,7 +277,7 @@ public partial class StringsViewModel : ViewModelBase
                     int threadCount = Environment.ProcessorCount;
                     int chunkSize = AllStringResults.Count / threadCount;
 
-                    List<StringResult>[] results = new List<StringResult>[threadCount];
+                    var results = new List<StringResult>[threadCount];
                     Parallel.For(0, threadCount, i =>
                     {
                         int start = i * chunkSize;
@@ -245,19 +287,13 @@ public partial class StringsViewModel : ViewModelBase
                         results[i] = [];
                         for (int j = start; j < end; j++)
                         {
-                            if (ct.IsCancellationRequested)
-                            {
-                                return;
-                            }
+                            if (ct.IsCancellationRequested) return;
 
-                            if (filterFunc(AllStringResults[j]))
-                            {
-                                results[i].Add(AllStringResults[j]);
-                            }
+                            if (filterFunc(AllStringResults[j])) results[i].Add(AllStringResults[j]);
 
-                            if ((j - start) % 100000 != 0) continue;
+                            if ((j - start) % SearchProgressUpdateInterval != 0) continue;
 #pragma warning disable MVVMTK0034
-                            Interlocked.Add(ref _searchProgress, 100000);
+                            Interlocked.Add(ref _searchProgress, SearchProgressUpdateInterval);
 #pragma warning restore MVVMTK0034
                             OnPropertyChanged(nameof(SearchProgress));
                         }
@@ -270,21 +306,11 @@ public partial class StringsViewModel : ViewModelBase
                 }
                 else
                 {
-                    int i = -1;
-                    foreach (StringResult s in AllStringResults)
+                    for (var i = 0; i < AllStringResults.Count; i++)
                     {
-                        i++;
-                        if (i % 100000 == 0)
-                        {
-                            SearchProgress = i;
-                        }
-
+                        if (i % SearchProgressUpdateInterval == 0) SearchProgress = i;
+                        if (filterFunc(AllStringResults[i])) filtered.Add(AllStringResults[i]);
                         ct.ThrowIfCancellationRequested();
-
-                        if (s.Content.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-                        {
-                            filtered.Add(s);
-                        }
                     }
                 }
             }
@@ -300,13 +326,26 @@ public partial class StringsViewModel : ViewModelBase
         }, ct);
     }
 
+    /// <summary>
+    /// All available encodings to use for string decoding
+    /// </summary>
     private List<Encoding> AllEncodings { get; }
 
-    [ObservableProperty] private List<Encoding> _filteredEncodings;
-
+    /// <summary>
+    /// Encoding to use for byte decoding string searching
+    /// </summary>
     [ObservableProperty] private Encoding _selectedEncoding;
+
     partial void OnSelectedEncodingChanged(Encoding value) => ReloadFile();
 
+    /// <summary>
+    /// Filtered encodings using EncodingFilter
+    /// </summary>
+    [ObservableProperty] private List<Encoding> _filteredEncodings;
+
+    /// <summary>
+    /// Search string for filtering encoding options
+    /// </summary>
     [ObservableProperty] private string _encodingFilter = "";
 
     partial void OnEncodingFilterChanged(string value)
@@ -317,14 +356,14 @@ public partial class StringsViewModel : ViewModelBase
             return;
         }
 
-        List<Encoding> encodings = AllEncodings.Where(e =>
+        // Filter encodings case-insensitively based on EncodingName or WebName
+        FilteredEncodings = AllEncodings.Where(e =>
             e.EncodingName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
             e.WebName.Contains(value, StringComparison.OrdinalIgnoreCase)).ToList();
-        FilteredEncodings = encodings;
     }
 
     [ObservableProperty] private OffsetFormatter _selectedOffsetFormatter =
-        OffsetFormatter.StringToOffsetFormatter(SettingsManager.Instance.AppSettings.DefaultAddressFormat);
+        OffsetFormatter.StringToOffsetFormatter(SettingsManager.Instance.Settings.DefaultAddressFormat);
 
     partial void OnSelectedOffsetFormatterChanged(OffsetFormatter value)
     {
@@ -334,6 +373,11 @@ public partial class StringsViewModel : ViewModelBase
 
     public static IReadOnlyList<OffsetFormatter> AllOffsetFormatters => OffsetFormatter.Formatters;
 
+    /// <summary>
+    /// Create a new StringsSource. Used to dynamically change the offset formatter.
+    /// </summary>
+    /// <param name="offsetFormatter">Offset formatter to use for addresses</param>
+    /// <returns>Source to use for TreeDataGrid</returns>
     private FlatTreeDataGridSource<StringResult> CreateStringsSource(OffsetFormatter offsetFormatter)
     {
         return new FlatTreeDataGridSource<StringResult>(FilteredStrings)
@@ -356,15 +400,22 @@ public partial class StringsViewModel : ViewModelBase
         };
     }
 
+    /// <summary>
+    /// Reprocess the already loaded file, using any new parameters if applicable
+    /// </summary>
     private void ReloadFile()
     {
         if (LoadedFile is null) return;
         OpenFile(LoadedFile);
     }
 
+    /// <summary>
+    /// Open a file and process it for strings, handling UI updates
+    /// </summary>
+    /// <param name="path"></param>
     public async void OpenFile(string path)
     {
-        ClearResults();
+        CloseFile();
         LoadedFile = path;
         Debug.WriteLine($"Loading file: {path}");
         if (ProcessCancellationTokenSource != null)
@@ -384,7 +435,7 @@ public partial class StringsViewModel : ViewModelBase
             {
                 try
                 {
-                    RunParallel(path, Environment.ProcessorCount,
+                    ProcessFile(path, Environment.ProcessorCount,
                         progress => { ProgressValue = progress * 100.0; },
                         ProcessCancellationTokenSource.Token);
                 }
@@ -405,6 +456,12 @@ public partial class StringsViewModel : ViewModelBase
         ProgressText = null;
     }
 
+    /// <summary>
+    /// Export the string results to a file, one string per line
+    /// </summary>
+    /// <param name="path">Path of the output file</param>
+    /// <param name="exportAll">True to export all strings, false to only export the search-filtered strings</param>
+    /// <returns>The export task</returns>
     public Task Export(string path, bool exportAll = false)
     {
         return Task.Run(async () =>
@@ -437,47 +494,14 @@ public partial class StringsViewModel : ViewModelBase
         });
     }
 
-    public StringsViewModel()
-    {
-        // Register all code pages from the System.Text.Encoding.CodePages package
-        // .NET core doesn't include them by default
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-        List<Encoding> prioritizedEncodings =
-        [
-            Encoding.ASCII,
-            Encoding.UTF8,
-            Encoding.Unicode, // UTF16-LE
-            Encoding.BigEndianUnicode, // UTF16-BE
-            Encoding.UTF32, // UTF32-LE
-            Encoding.GetEncoding(12001), // UTF32-BE
-            Encoding.Latin1,
-            Encoding.GetEncoding(1252) // Windows-1252
-        ];
-
-        // Add prioritized encodings to the top of encodings list for easier visibility,
-        // followed by the rest of the non-prioritized encodings
-        AllEncodings = prioritizedEncodings.Concat(
-            Encoding.GetEncodings()
-                .Select(e => e.GetEncoding())
-                .Except(prioritizedEncodings)
-                .OrderBy(e => e.EncodingName)
-        ).ToList();
-
-        FilteredEncodings = AllEncodings;
-        try
-        {
-            SelectedEncoding = Encoding.GetEncoding(SettingsManager.Instance.AppSettings.DefaultEncoding);
-        }
-        catch (ArgumentException)
-        {
-            SelectedEncoding = Encoding.ASCII;
-        }
-
-        StringsSource = CreateStringsSource(SelectedOffsetFormatter);
-    }
-
-    public void RunParallel(string path, int threadCount, Action<double>? progressCallback, CancellationToken ct)
+    /// <summary>
+    /// Process an input file to find strings
+    /// </summary>
+    /// <param name="path">Path to input file</param>
+    /// <param name="threadCount">Number of threads to use for parallel searching</param>
+    /// <param name="progressCallback">Callback for setting progress, 0 to 1</param>
+    /// <param name="ct">Cancellation token</param>
+    public void ProcessFile(string path, int threadCount, Action<double>? progressCallback, CancellationToken ct)
     {
         FileInfo fileInfo = new(path);
         long fileSize = fileInfo.Length;
@@ -489,7 +513,7 @@ public partial class StringsViewModel : ViewModelBase
             long start = 0;
             long end = fileSize;
             Debug.WriteLine($"Starting chunk processor: start: {start}, end: {end}");
-            var stringResults = ProcessChunk(path, start, end, SelectedEncoding, SelectedCharSet, b =>
+            var stringResults = ProcessFileChunk(path, start, end, SelectedEncoding, SelectedCharSet, b =>
             {
                 bytesProcessed[0] = b;
                 progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
@@ -498,18 +522,18 @@ public partial class StringsViewModel : ViewModelBase
         }
         else
         {
-            Parallel.For(0, threadCount, i =>
+            Parallel.For(0, threadCount, threadIndex =>
             {
-                long start = i * chunkSize;
-                long end = (i == threadCount - 1) ? fileSize : start + chunkSize;
+                long start = threadIndex * chunkSize;
+                long end = (threadIndex == threadCount - 1) ? fileSize : start + chunkSize;
                 Debug.WriteLine(
-                    $"Starting parallel chunk processor: {i + 1:D2}/{threadCount}, start: {start}, end: {end}");
-                var results = ProcessChunk(path, start, end, SelectedEncoding, SelectedCharSet, b =>
+                    $"Starting parallel chunk processor: {threadIndex + 1:D2}/{threadCount}, start: {start}, end: {end}");
+                var stringResults = ProcessFileChunk(path, start, end, SelectedEncoding, SelectedCharSet, b =>
                 {
-                    bytesProcessed[i] = b;
+                    bytesProcessed[threadIndex] = b;
                     progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
                 }, ct);
-                bag[i] = results;
+                bag[threadIndex] = stringResults;
             });
         }
 
@@ -534,7 +558,18 @@ public partial class StringsViewModel : ViewModelBase
         Dispatcher.UIThread.Invoke(() => { StringsSource.Items = FilteredStrings; });
     }
 
-    private List<StringResult> ProcessChunk(string path, long start, long end, Encoding encoding,
+    /// <summary>
+    /// Process a specified chunk of a file to find strings
+    /// </summary>
+    /// <param name="path">Path to input file</param>
+    /// <param name="start">Address in the file to start searching</param>
+    /// <param name="end">Address in the file to end searching</param>
+    /// <param name="encoding">Encoding to use when decoding the file bytes to text</param>
+    /// <param name="charSet">Character set to use when determining if a character is printable</param>
+    /// <param name="progressCallback">Progress callback with numbere of bytes that have been processed in this chunk</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Found strings</returns>
+    private List<StringResult> ProcessFileChunk(string path, long start, long end, Encoding encoding,
         Character.CharSet charSet, Action<long>? progressCallback, CancellationToken ct)
     {
         // Skip to this chunk's start point
@@ -546,7 +581,11 @@ public partial class StringsViewModel : ViewModelBase
         int maxCharCount = encoding.GetMaxCharCount(maxBytesPerChar);
         Debug.Assert(maxBytesPerChar > 0);
 
-        byte[] buff = new byte[BlockSize + maxBytesPerChar - 1];
+        // Create a char buffer of that length
+        var charDecodeBuff = new char[maxCharCount];
+
+        // Buffer to decode the bytes to, extending extra for leftover bytes in multibyte chars
+        var buff = new byte[BlockSize + maxBytesPerChar - 1];
 
         StringBuilder currentString = new();
         long currentStringStart = 0;
@@ -560,10 +599,6 @@ public partial class StringsViewModel : ViewModelBase
         // this will just act as a non-printable char and end the string.
         encoding = (Encoding)encoding.Clone();
         encoding.DecoderFallback = new DecoderReplacementFallback("\0");
-
-        // Create a char buffer of that length
-        // TODO: Reuse a char buffer instead
-        var charDecodeBuff = new char[maxCharCount];
 
         bool breakOuter = false;
         while (!breakOuter && (numBytesRead = fs.Read(buff, 0, BlockSize)) > 0)
@@ -631,5 +666,45 @@ public partial class StringsViewModel : ViewModelBase
         }
 
         return foundStrings;
+    }
+
+    public StringsViewModel()
+    {
+        // Register all code pages from the System.Text.Encoding.CodePages package
+        // .NET core doesn't include them by default
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+        List<Encoding> prioritizedEncodings =
+        [
+            Encoding.ASCII,
+            Encoding.UTF8,
+            Encoding.Unicode, // UTF16-LE
+            Encoding.BigEndianUnicode, // UTF16-BE
+            Encoding.UTF32, // UTF32-LE
+            Encoding.GetEncoding(12001), // UTF32-BE
+            Encoding.Latin1,
+            Encoding.GetEncoding(1252) // Windows-1252
+        ];
+
+        // Add prioritized encodings to the top of encodings list for easier visibility,
+        // followed by the rest of the non-prioritized encodings
+        AllEncodings = prioritizedEncodings.Concat(
+            Encoding.GetEncodings()
+                .Select(e => e.GetEncoding())
+                .Except(prioritizedEncodings)
+                .OrderBy(e => e.EncodingName)
+        ).ToList();
+
+        FilteredEncodings = AllEncodings;
+        try
+        {
+            SelectedEncoding = Encoding.GetEncoding(SettingsManager.Instance.Settings.DefaultEncoding);
+        }
+        catch (ArgumentException)
+        {
+            SelectedEncoding = Encoding.ASCII;
+        }
+
+        StringsSource = CreateStringsSource(SelectedOffsetFormatter);
     }
 }

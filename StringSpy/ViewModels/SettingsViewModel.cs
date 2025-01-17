@@ -73,7 +73,7 @@ public partial class SettingsViewModel : ViewModelBase
     private void LoadSettings()
     {
         SettingsManager.Instance.LoadSettings();
-        AppSettings appSettings = SettingsManager.Instance.AppSettings;
+        AppSettings appSettings = SettingsManager.Instance.Settings;
 
         SelectedAppTheme = appSettings.AppTheme;
         SelectedFont = appSettings.Font;
@@ -103,7 +103,7 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     public void SaveSettings()
     {
-        AppSettings appSettings = SettingsManager.Instance.AppSettings;
+        AppSettings appSettings = SettingsManager.Instance.Settings;
 
         appSettings.AppTheme = SelectedAppTheme;
         appSettings.Font = SelectedFont;
@@ -130,7 +130,7 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     public void RestoreDefaultSettings()
     {
-        SettingsManager.Instance.AppSettings = new AppSettings();
+        SettingsManager.Instance.Settings = new AppSettings();
         SettingsManager.Instance.SaveSettings();
         LoadSettings();
     }
