@@ -52,6 +52,7 @@
                     </ui:SettingsExpander.Footer>
                 </ui:SettingsExpander>
 
+                <!--
                 <ui:SettingsExpander Header="Group duplicate strings"
                                      IconSource="Bookmarks"
                                      Description="Combine duplicate strings into the same expandable row">
@@ -59,6 +60,7 @@
                         <ToggleSwitch IsChecked="{Binding GroupStrings}"></ToggleSwitch>
                     </ui:SettingsExpander.Footer>
                 </ui:SettingsExpander>
+                -->
 
                 <TextBlock FontSize="18">Strings</TextBlock>
 
@@ -126,7 +128,6 @@
                     </ui:SettingsExpander.Footer>
                 </ui:SettingsExpander>
 
-
                 <TextBlock FontSize="18">Advanced</TextBlock>
 
                 <ui:SettingsExpander Header="Parallel search threshold"
@@ -139,6 +140,8 @@
                     </ui:SettingsExpander.Footer>
                 </ui:SettingsExpander>
 
+                <TextBlock FontSize="12">StringSpy</TextBlock>
+                <TextBlock FontSize="12">© 2025 Andy Smith</TextBlock>
                 <TextBlock FontSize="12" Text="{Binding CurrentVersion, StringFormat='Version: {0}'}" />
             </StackPanel>
         </ScrollViewer>
