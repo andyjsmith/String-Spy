@@ -132,9 +132,10 @@ public class SettingsManager
             { "High Contrast", FluentAvaloniaTheme.HighContrastTheme }
         };
 
-    private void UpdateTheme(string theme)
+    private static void UpdateTheme(string theme)
     {
-        Application.Current!.RequestedThemeVariant = AppThemes.GetValueOrDefault(theme, ThemeVariant.Default);
+        if (Application.Current == null) return;
+        Application.Current.RequestedThemeVariant = AppThemes.GetValueOrDefault(theme, ThemeVariant.Default);
     }
 
     public void SaveSettings()
