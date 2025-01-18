@@ -331,12 +331,22 @@ public partial class StringsViewModel : ViewModelBase
     /// </summary>
     private List<Encoding> AllEncodings { get; }
 
+    private Encoding _selectedEncoding = Encoding.ASCII;
     /// <summary>
     /// Encoding to use for byte decoding string searching
     /// </summary>
-    [ObservableProperty] private Encoding _selectedEncoding;
-
-    partial void OnSelectedEncodingChanged(Encoding value) => ReloadFile();
+    [AllowNull]
+    public Encoding SelectedEncoding
+    {
+        get => _selectedEncoding;
+        set
+        {
+            if (value == null) return;
+            _selectedEncoding = value;
+            ReloadFile();
+            OnPropertyChanged();
+        }
+    }
 
     /// <summary>
     /// Filtered encodings using EncodingFilter
@@ -702,7 +712,6 @@ public partial class StringsViewModel : ViewModelBase
         }
         catch (ArgumentException)
         {
-            SelectedEncoding = Encoding.ASCII;
         }
 
         StringsSource = CreateStringsSource(SelectedOffsetFormatter);
