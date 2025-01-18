@@ -77,12 +77,14 @@ public partial class StringsViewModel : ViewModelBase
     /// Treat string search text as regex
     /// </summary>
     [ObservableProperty] private bool _isRegexEnabled = SettingsManager.Instance.Settings.DefaultUseRegex;
+
     partial void OnIsRegexEnabledChanged(bool value) => RunSearch();
 
     /// <summary>
     /// Treat string search text as case-insensitive
     /// </summary>
     [ObservableProperty] private bool _isCaseSensitiveEnabled = SettingsManager.Instance.Settings.DefaultCaseSensitive;
+
     partial void OnIsCaseSensitiveEnabledChanged(bool value) => RunSearch();
 
     /// <summary>
@@ -332,6 +334,7 @@ public partial class StringsViewModel : ViewModelBase
     private List<Encoding> AllEncodings { get; }
 
     private Encoding _selectedEncoding = Encoding.ASCII;
+
     /// <summary>
     /// Encoding to use for byte decoding string searching
     /// </summary>
@@ -445,7 +448,7 @@ public partial class StringsViewModel : ViewModelBase
             {
                 try
                 {
-                    ProcessFile(path, Environment.ProcessorCount,
+                    ProcessFile(path, Environment.ProcessorCount, SelectedEncoding, SelectedCharSet,
                         progress => { ProgressValue = progress * 100.0; },
                         ProcessCancellationTokenSource.Token);
                 }
@@ -509,10 +512,14 @@ public partial class StringsViewModel : ViewModelBase
     /// </summary>
     /// <param name="path">Path to input file</param>
     /// <param name="threadCount">Number of threads to use for parallel searching</param>
+    /// <param name="encoding">Encoding to use when decoding the file bytes to text</param>
+    /// <param name="charSet">Character set to use when determining if a character is printable</param>
     /// <param name="progressCallback">Callback for setting progress, 0 to 1</param>
     /// <param name="ct">Cancellation token</param>
-    public void ProcessFile(string path, int threadCount, Action<double>? progressCallback, CancellationToken ct)
+    public void ProcessFile(string path, int threadCount, Encoding encoding, Character.CharSet charSet,
+        Action<double>? progressCallback = null, CancellationToken? ct = null)
     {
+        ct ??= CancellationToken.None;
         FileInfo fileInfo = new(path);
         long fileSize = fileInfo.Length;
         long chunkSize = fileSize / threadCount;
@@ -523,11 +530,11 @@ public partial class StringsViewModel : ViewModelBase
             long start = 0;
             long end = fileSize;
             Debug.WriteLine($"Starting chunk processor: start: {start}, end: {end}");
-            var stringResults = ProcessFileChunk(path, start, end, SelectedEncoding, SelectedCharSet, b =>
+            var stringResults = ProcessFileChunk(path, start, end, encoding, charSet, b =>
             {
                 bytesProcessed[0] = b;
                 progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
-            }, ct);
+            }, (CancellationToken)ct);
             bag[0] = stringResults;
         }
         else
@@ -538,11 +545,11 @@ public partial class StringsViewModel : ViewModelBase
                 long end = (threadIndex == threadCount - 1) ? fileSize : start + chunkSize;
                 Debug.WriteLine(
                     $"Starting parallel chunk processor: {threadIndex + 1:D2}/{threadCount}, start: {start}, end: {end}");
-                var stringResults = ProcessFileChunk(path, start, end, SelectedEncoding, SelectedCharSet, b =>
+                var stringResults = ProcessFileChunk(path, start, end, encoding, charSet, b =>
                 {
                     bytesProcessed[threadIndex] = b;
                     progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
-                }, ct);
+                }, (CancellationToken)ct);
                 bag[threadIndex] = stringResults;
             });
         }
