@@ -11,7 +11,7 @@
         WindowStartupLocation="CenterOwner"
         Width="900"
         Height="600"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/icon.ico"
         Title="Settings">
     <Design.DataContext>
         <vm:SettingsViewModel />

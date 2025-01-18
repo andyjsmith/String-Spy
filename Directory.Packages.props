@@ -22,10 +22,5 @@
 
         <!-- Misc -->
         <PackageVersion Include="System.Text.Encoding.CodePages" Version="9.0.0"/>
-
-        <!-- Testing -->
-        <PackageVersion Include="coverlet.collector" Version="6.0.3"/>
-        <PackageVersion Include="xunit" Version="2.9.3"/>
-        <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.1"/>
     </ItemGroup>
 </Project>

@@ -13,7 +13,7 @@
         Height="350"
         MinWidth="300"
         MinHeight="200"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/icon.ico"
         Title="Inspect String">
     <Window.Resources>
         <models:HexadecimalConverter x:Key="HexadecimalConverter" />

@@ -2,7 +2,7 @@
 
 using Avalonia;
 
-namespace StringSpy.Desktop;
+namespace StringSpy;
 
 class Program
 {

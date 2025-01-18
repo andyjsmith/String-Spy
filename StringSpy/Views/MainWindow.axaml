@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="StringSpy.Views.MainWindow"
         x:DataType="vm:StringsViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/icon.ico"
         Title="StringSpy">
 
     <Design.DataContext>
