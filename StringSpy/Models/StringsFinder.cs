@@ -48,56 +48,33 @@ public class StringsFinder
     /// </summary>
     /// <param name="progressCallback">Callback for setting progress, 0 to 1</param>
     /// <param name="ct">Cancellation token</param>
-    public List<StringResult> FindStrings(Action<double>? progressCallback = null, CancellationToken? ct = null)
+    public List<StringResult> FindStrings(Action<double>? progressCallback = null, CancellationToken ct = default)
     {
-        ct ??= CancellationToken.None;
-        FileInfo fileInfo = new(_path);
-        long fileSize = fileInfo.Length;
+        long fileSize = new FileInfo(_path).Length;
         long chunkSize = fileSize / _threadCount;
         var bytesProcessed = new long[_threadCount];
-        var bag = new List<StringResult>[_threadCount];
-        if (_threadCount == 1)
+        var resultsPerThread = new List<StringResult>[_threadCount];
+        
+        Parallel.For(0, _threadCount, threadIndex =>
         {
-            long start = 0;
-            long end = fileSize;
-            Debug.WriteLine($"Starting chunk processor: start: {start}, end: {end}");
+            long start = threadIndex * chunkSize;
+            long end = threadIndex == _threadCount - 1 ? fileSize : start + chunkSize;
+            Debug.WriteLine(
+                $"Starting parallel chunk processor: {threadIndex + 1:D2}/{_threadCount}, start: {start}, end: {end}");
             var stringResults = ProcessFileChunk(start, end, b =>
             {
-                bytesProcessed[0] = b;
+                bytesProcessed[threadIndex] = b;
                 progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
-            }, (CancellationToken)ct);
-            bag[0] = stringResults;
-        }
-        else
-        {
-            Parallel.For(0, _threadCount, threadIndex =>
-            {
-                long start = threadIndex * chunkSize;
-                long end = (threadIndex == _threadCount - 1) ? fileSize : start + chunkSize;
-                Debug.WriteLine(
-                    $"Starting parallel chunk processor: {threadIndex + 1:D2}/{_threadCount}, start: {start}, end: {end}");
-                var stringResults = ProcessFileChunk(start, end, b =>
-                {
-                    bytesProcessed[threadIndex] = b;
-                    progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
-                }, (CancellationToken)ct);
-                bag[threadIndex] = stringResults;
-            });
-        }
+            }, ct);
+            resultsPerThread[threadIndex] = stringResults;
+        });
 
-        List<StringResult> results = [];
-        foreach (var result in bag)
-        {
-            results.AddRange(result);
-        }
+        var results = resultsPerThread.SelectMany(x => x).ToList();
 
         // Remove overlapping strings
         for (int i = results.Count - 1; i > 0; i--)
         {
-            if (results[i].Position <= results[i - 1].EndPosition)
-            {
-                results.RemoveAt(i);
-            }
+            if (results[i].Position <= results[i - 1].EndPosition) results.RemoveAt(i);
         }
 
         return results;
@@ -224,16 +201,11 @@ public class StringsFinder
     /// <returns>Search task</returns>
     /// <exception cref="OperationCanceledException">Throws if search was cancelled</exception>
     public static List<StringResult>? FilterStrings(List<StringResult> stringResults, string searchText,
-        bool useRegex,
-        bool caseSensitive, Action<int>? progressCallback,
-        CancellationToken ct = default)
+        bool useRegex, bool caseSensitive, Action<int>? progressCallback, CancellationToken ct = default)
     {
         List<StringResult> filtered = [];
 
-        if (searchText == string.Empty)
-        {
-            return stringResults;
-        }
+        if (searchText == string.Empty) return stringResults;
 
         try
         {
