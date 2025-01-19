@@ -70,7 +70,7 @@ public class StringsFinder
         catch (Exception e) when (e is ArgumentOutOfRangeException or IOException or PathTooLongException
                                       or SecurityException)
         {
-            Debug.WriteLine(e.Message);
+            Debug.WriteLine("Could not memory map file: " + e.Message);
         }
 
         try
@@ -245,13 +245,6 @@ public class StringsFinder
 
         try
         {
-            bool useMultithreadedSearch = SettingsManager.Instance.Settings.ParallelSearchThreshold switch
-            {
-                < 0 => false,
-                0 => true,
-                _ => stringResults.Count >= SettingsManager.Instance.Settings.ParallelSearchThreshold
-            };
-
             Func<StringResult, bool> filterFunc;
             if (useRegex)
             {
@@ -277,7 +270,7 @@ public class StringsFinder
                 filterFunc = s => s.Content.Contains(searchText, comparisonType);
             }
 
-            if (useMultithreadedSearch)
+            if (SettingsManager.Instance.Settings.MultithreadedFiltering && stringResults.Count > 10_000)
             {
                 int threadCount = Environment.ProcessorCount;
                 int chunkSize = stringResults.Count / threadCount;

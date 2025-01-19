@@ -34,8 +34,10 @@ public class AppSettings
     public bool DefaultCaseSensitive { get; set; } = false;
     public bool DefaultUseRegex { get; set; } = false;
 
-    // Advanced
-    public int ParallelSearchThreshold { get; set; } = 100_000;
+    // Performance
+    public bool MultithreadedProcessing { get; set; } = true;
+    public bool MultithreadedFiltering { get; set; } = true;
+    public bool UseMemoryMappedFile { get; set; } = true;
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true)]

@@ -350,8 +350,9 @@ public partial class StringsViewModel : ViewModelBase
                 try
                 {
                     var sf = new StringsFinder(path, SelectedEncoding, SelectedCharSet, MinimumStringLength,
-                        Environment.ProcessorCount);
+                        SettingsManager.Instance.Settings.MultithreadedProcessing ? Environment.ProcessorCount : 1);
                     var results = sf.FindStrings(progress => { ProgressValue = progress * 100.0; },
+                        useMemoryMappedFile: SettingsManager.Instance.Settings.UseMemoryMappedFile,
                         ct: ProcessCancellationTokenSource.Token);
 
                     AllStringResults = results;

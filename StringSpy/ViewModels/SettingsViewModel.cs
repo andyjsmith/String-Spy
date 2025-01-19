@@ -53,7 +53,9 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _automaticSearch;
     [ObservableProperty] private bool _defaultCaseSensitive;
     [ObservableProperty] private bool _defaultRegex;
-    [ObservableProperty] private int _parallelSearchThreshold;
+    [ObservableProperty] private bool _multithreadedProcessing;
+    [ObservableProperty] private bool _multithreadedFiltering;
+    [ObservableProperty] private bool _useMemoryMappedFile;
 
     public SettingsViewModel()
     {
@@ -88,7 +90,9 @@ public partial class SettingsViewModel : ViewModelBase
         DefaultCaseSensitive = appSettings.DefaultCaseSensitive;
         DefaultRegex = appSettings.DefaultUseRegex;
 
-        ParallelSearchThreshold = appSettings.ParallelSearchThreshold;
+        MultithreadedProcessing = appSettings.MultithreadedProcessing;
+        MultithreadedFiltering = appSettings.MultithreadedFiltering;
+        UseMemoryMappedFile = appSettings.UseMemoryMappedFile;
 
         UpdateGui();
     }
@@ -118,7 +122,7 @@ public partial class SettingsViewModel : ViewModelBase
         appSettings.DefaultCaseSensitive = DefaultCaseSensitive;
         appSettings.DefaultUseRegex = DefaultRegex;
 
-        appSettings.ParallelSearchThreshold = ParallelSearchThreshold;
+        appSettings.MultithreadedFiltering = MultithreadedFiltering;
 
         SettingsManager.Instance.SaveSettings();
 

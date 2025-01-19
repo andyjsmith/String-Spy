@@ -128,15 +128,29 @@
                     </ui:SettingsExpander.Footer>
                 </ui:SettingsExpander>
 
-                <TextBlock FontSize="18">Advanced</TextBlock>
+                <TextBlock FontSize="18">Performance</TextBlock>
 
-                <ui:SettingsExpander Header="Parallel search threshold"
+                <ui:SettingsExpander Header="Multi-threaded processing"
                                      IconSource="#"
-                                     Description="Number of strings before parallel searching should be used. 0 to always use, -1 to disable.">
+                                     Description="Use multiple threads when searching the file for strings. WARNING: When using multithreaded processing for multibyte (e.g. Unicode) encodings, string results may differ slightly depending on the number of threads used. This is due to how overlaps are handled on chunk boundaries.">
                     <ui:SettingsExpander.Footer>
-                        <ui:NumberBox PlaceholderText="100,000" Value="{Binding ParallelSearchThreshold}"
-                                      SimpleNumberFormat="N0" MinWidth="150">
-                        </ui:NumberBox>
+                        <ToggleSwitch IsChecked="{Binding MultithreadedProcessing}" />
+                    </ui:SettingsExpander.Footer>
+                </ui:SettingsExpander>
+
+                <ui:SettingsExpander Header="Multi-threaded filtering"
+                                     IconSource="#"
+                                     Description="Use multiple threads when filtering string results in the search box.">
+                    <ui:SettingsExpander.Footer>
+                        <ToggleSwitch IsChecked="{Binding MultithreadedFiltering}" />
+                    </ui:SettingsExpander.Footer>
+                </ui:SettingsExpander>
+
+                <ui:SettingsExpander Header="Memory-mapped file"
+                                     IconSource="#"
+                                     Description="Use memory-mapped file when searching for strings (if capable).">
+                    <ui:SettingsExpander.Footer>
+                        <ToggleSwitch IsChecked="{Binding UseMemoryMappedFile}" />
                     </ui:SettingsExpander.Footer>
                 </ui:SettingsExpander>
 
