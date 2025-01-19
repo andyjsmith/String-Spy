@@ -47,11 +47,10 @@ jobs:
       - name: Publish
         run: dotnet publish StringSpy --no-restore --self-contained true --runtime ${{ matrix.rid }} /p:Version=${VERSION}
 
-      - name: Archive files
+      - name: Create archive
         shell: bash
-        run: |
-          cd StringSpy\bin\Release\net9.0\${{ matrix.rid }}\publish\
-          ${{ matrix.archive-cmd }} stringspy-${VERSION}-${{ matrix.rid }}.${{ matrix.archive-suffix }} *
+        working-directory: StringSpy\bin\Release\net9.0\${{ matrix.rid }}\publish\
+        run: ${{ matrix.archive-cmd }} stringspy-${VERSION}-${{ matrix.rid }}.${{ matrix.archive-suffix }} *
 
       - name: Release
         uses: softprops/action-gh-release@v2
