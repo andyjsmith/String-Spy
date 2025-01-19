@@ -6,8 +6,6 @@ on:
 
 jobs:
   Release:
-    needs: Build
-    
     strategy:
       matrix:
         include:
