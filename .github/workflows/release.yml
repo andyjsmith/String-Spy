@@ -3,6 +3,9 @@ name: Release
 on:
   push:
     tags: [ "v*.*.*" ]
+    
+permissions:
+  contents: write
 
 jobs:
   Release:
@@ -58,4 +61,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            StringSpy/bin/Release/net9.0/${{ matrix.rid }}/publish/stringspy-${VERSION}-${{ matrix.rid }}.${{ matrix.archive-suffix }}
+            StringSpy/bin/Release/net9.0/${{ matrix.rid }}/publish/*.${{ matrix.archive-suffix }}
