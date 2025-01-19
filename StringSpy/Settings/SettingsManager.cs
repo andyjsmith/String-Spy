@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using Avalonia;
 using Avalonia.Styling;
 using FluentAvalonia.Styling;
@@ -16,7 +17,10 @@ public class AppSettings
     // The values here are the defaults
     public string AppTheme { get; set; } = "System";
     public string Font { get; set; } = "<default>";
-    public string FontValue => Font == "<default>" ? "Consolas, San Francisco, Monaco, Noto Mono, Ubuntu Mono, Courier New" : Font;
+
+    public string FontValue =>
+        Font == "<default>" ? "Consolas, San Francisco, Monaco, Noto Mono, Ubuntu Mono, Courier New" : Font;
+
     public string DefaultAddressFormat { get; set; } = "Hexadecimal";
     public bool GroupDuplicateStrings { get; set; } = false;
 
@@ -47,7 +51,7 @@ public class SettingsManager
         LoadSettings();
     }
 
-    private static readonly object Lock = new();
+    private static readonly Lock Lock = new();
     private static SettingsManager? _instance;
     private AppSettings? _settings;
 

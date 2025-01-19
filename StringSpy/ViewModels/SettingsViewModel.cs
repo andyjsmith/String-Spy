@@ -7,8 +7,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System.Linq;
 using System.Text;
 using CommunityToolkit.Mvvm.Input;
+using StringSpy.Models;
 using StringSpy.Settings;
-using StringSpy.Strings;
 
 namespace StringSpy.ViewModels;
 
@@ -18,7 +18,7 @@ public partial class SettingsViewModel : ViewModelBase
     /// Closes the settings window
     /// </summary>
     public event EventHandler? OnRequestClose;
-    
+
     public static string CurrentVersion =>
         typeof(App).Assembly.GetName().Version?.ToString() ?? "unknown";
 
@@ -44,10 +44,10 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty] private Encoding _selectedDefaultEncoding = Encoding.ASCII;
 
-    public Character.CharSet[] AllCharSets { get; } =
-        [Character.CharSet.Ascii, Character.CharSet.Latin1, Character.CharSet.CurrentEncoding];
+    public CharSet[] AllCharSets { get; } =
+        [CharSet.Ascii, CharSet.Latin1, CharSet.CurrentEncoding];
 
-    [ObservableProperty] private Character.CharSet _selectedCharSet;
+    [ObservableProperty] private CharSet _selectedCharSet;
     [ObservableProperty] private int _defaultMinimumStringLength;
 
     [ObservableProperty] private bool _automaticSearch;

@@ -17,7 +17,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using StringSpy.Models;
 using StringSpy.Settings;
-using StringSpy.Strings;
 
 namespace StringSpy.ViewModels;
 
@@ -31,8 +30,6 @@ public partial class StringsViewModel : ViewModelBase
     private int _minimumStringLength = SettingsManager.Instance.Settings.DefaultMinimumStringLength;
 
     partial void OnMinimumStringLengthChanged(int value) => ReloadFile();
-
-    private const int BlockSize = 4 << 20; // 4 MiB
 
     [ObservableProperty] private List<StringResult> _allStringResults = [];
     [ObservableProperty] private ObservableCollection<StringResult> _filteredStrings = [];
@@ -49,7 +46,7 @@ public partial class StringsViewModel : ViewModelBase
 
     [ObservableProperty] private StringResult? _selectedString;
 
-    private static Character.CharSet SelectedCharSet =>
+    private static CharSet SelectedCharSet =>
         Character.StringToCharSet(SettingsManager.Instance.Settings.CharacterSet);
 
     // UI
@@ -212,120 +209,24 @@ public partial class StringsViewModel : ViewModelBase
         CancelSearch();
 
         _searchTaskCts = new CancellationTokenSource();
-        SearchTask = Search(SearchText, _searchTaskCts.Token);
-    }
 
-    /// <summary>
-    /// How many strings to search between progress update events
-    /// </summary>
-    private const int SearchProgressUpdateInterval = 10_000;
-
-    /// <summary>
-    /// Search all strings for the provided text using options set in the GUI and settings
-    /// </summary>
-    /// <param name="searchText">Text to search for</param>
-    /// <param name="ct">Cancellation token</param>
-    /// <returns>Search task</returns>
-    private Task Search(string searchText, CancellationToken ct = default)
-    {
-        return Task.Run(() =>
+        SearchTask = Task.Run(() =>
         {
-            List<StringResult> filtered = [];
-
-            if (searchText == string.Empty)
-            {
-                FilteredStrings = new ObservableCollection<StringResult>(AllStringResults);
-                Dispatcher.UIThread.Invoke(() => { StringsSource.Items = FilteredStrings; });
-                SearchProgress = 0;
-                return;
-            }
-
-            try
-            {
-                bool useMultithreadedSearch = SettingsManager.Instance.Settings.ParallelSearchThreshold switch
+            var searchResults = StringsFinder.FilterStrings(AllStringResults, SearchText, IsRegexEnabled,
+                IsCaseSensitiveEnabled,
+                progress =>
                 {
-                    < 0 => false,
-                    0 => true,
-                    _ => AllStringResults.Count >= SettingsManager.Instance.Settings.ParallelSearchThreshold
-                };
-
-                Func<StringResult, bool> filterFunc;
-                if (IsRegexEnabled)
-                {
-                    var regexOptions = RegexOptions.Compiled;
-                    if (!IsCaseSensitiveEnabled) regexOptions |= RegexOptions.IgnoreCase;
-
-                    Regex re;
-                    try
-                    {
-                        re = new Regex(searchText, regexOptions);
-                    }
-                    catch (ArgumentException)
-                    {
-                        return;
-                    }
-
-                    filterFunc = s => re.IsMatch(s.Content);
-                }
-                else
-                {
-                    var comparisonType = StringComparison.OrdinalIgnoreCase;
-                    if (IsCaseSensitiveEnabled) comparisonType = StringComparison.Ordinal;
-                    filterFunc = s => s.Content.Contains(searchText, comparisonType);
-                }
-
-                if (useMultithreadedSearch)
-                {
-                    int threadCount = Environment.ProcessorCount;
-                    int chunkSize = AllStringResults.Count / threadCount;
-
-                    var results = new List<StringResult>[threadCount];
-                    Parallel.For(0, threadCount, i =>
-                    {
-                        int start = i * chunkSize;
-                        int end = (i == threadCount - 1) ? AllStringResults.Count : start + chunkSize;
-                        Debug.WriteLine(
-                            $"Starting string processor: {i + 1:D2}/{threadCount}, start: {start}, end: {end}");
-                        results[i] = [];
-                        for (int j = start; j < end; j++)
-                        {
-                            if (ct.IsCancellationRequested) return;
-
-                            if (filterFunc(AllStringResults[j])) results[i].Add(AllStringResults[j]);
-
-                            if ((j - start) % SearchProgressUpdateInterval != 0) continue;
 #pragma warning disable MVVMTK0034
-                            Interlocked.Add(ref _searchProgress, SearchProgressUpdateInterval);
+                    Interlocked.Add(ref _searchProgress, progress);
 #pragma warning restore MVVMTK0034
-                            OnPropertyChanged(nameof(SearchProgress));
-                        }
-                    });
+                    OnPropertyChanged(nameof(SearchProgress));
+                }, _searchTaskCts.Token);
 
-                    foreach (var result in results)
-                    {
-                        filtered.AddRange(result);
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < AllStringResults.Count; i++)
-                    {
-                        if (i % SearchProgressUpdateInterval == 0) SearchProgress = i;
-                        if (filterFunc(AllStringResults[i])) filtered.Add(AllStringResults[i]);
-                        ct.ThrowIfCancellationRequested();
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Debug.WriteLine("Search cancelled with exception");
-                return;
-            }
-
-            FilteredStrings = new ObservableCollection<StringResult>(filtered);
-            Dispatcher.UIThread.Invoke(() => { StringsSource.Items = FilteredStrings; });
             SearchProgress = 0;
-        }, ct);
+            if (searchResults == null) return;
+            FilteredStrings = new ObservableCollection<StringResult>(searchResults);
+            Dispatcher.UIThread.Invoke(() => { StringsSource.Items = FilteredStrings; });
+        });
     }
 
     /// <summary>
@@ -448,9 +349,15 @@ public partial class StringsViewModel : ViewModelBase
             {
                 try
                 {
-                    ProcessFile(path, Environment.ProcessorCount, SelectedEncoding, SelectedCharSet,
-                        progress => { ProgressValue = progress * 100.0; },
+                    var sf = new StringsFinder(path, SelectedEncoding, SelectedCharSet, MinimumStringLength,
+                        Environment.ProcessorCount);
+                    var results = sf.FindStrings(progress => { ProgressValue = progress * 100.0; },
                         ProcessCancellationTokenSource.Token);
+
+                    AllStringResults = results;
+                    Debug.WriteLine($"Found strings: {results.Count}");
+                    FilteredStrings = new ObservableCollection<StringResult>(AllStringResults);
+                    Dispatcher.UIThread.Invoke(() => { StringsSource.Items = FilteredStrings; });
                 }
                 catch (Exception e)
                 {
@@ -505,184 +412,6 @@ public partial class StringsViewModel : ViewModelBase
             ProgressValue = 100;
             ProgressText = null;
         });
-    }
-
-    /// <summary>
-    /// Process an input file to find strings
-    /// </summary>
-    /// <param name="path">Path to input file</param>
-    /// <param name="threadCount">Number of threads to use for parallel searching</param>
-    /// <param name="encoding">Encoding to use when decoding the file bytes to text</param>
-    /// <param name="charSet">Character set to use when determining if a character is printable</param>
-    /// <param name="progressCallback">Callback for setting progress, 0 to 1</param>
-    /// <param name="ct">Cancellation token</param>
-    public void ProcessFile(string path, int threadCount, Encoding encoding, Character.CharSet charSet,
-        Action<double>? progressCallback = null, CancellationToken? ct = null)
-    {
-        ct ??= CancellationToken.None;
-        FileInfo fileInfo = new(path);
-        long fileSize = fileInfo.Length;
-        long chunkSize = fileSize / threadCount;
-        var bytesProcessed = new long[threadCount];
-        var bag = new List<StringResult>[threadCount];
-        if (threadCount == 1)
-        {
-            long start = 0;
-            long end = fileSize;
-            Debug.WriteLine($"Starting chunk processor: start: {start}, end: {end}");
-            var stringResults = ProcessFileChunk(path, start, end, encoding, charSet, b =>
-            {
-                bytesProcessed[0] = b;
-                progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
-            }, (CancellationToken)ct);
-            bag[0] = stringResults;
-        }
-        else
-        {
-            Parallel.For(0, threadCount, threadIndex =>
-            {
-                long start = threadIndex * chunkSize;
-                long end = (threadIndex == threadCount - 1) ? fileSize : start + chunkSize;
-                Debug.WriteLine(
-                    $"Starting parallel chunk processor: {threadIndex + 1:D2}/{threadCount}, start: {start}, end: {end}");
-                var stringResults = ProcessFileChunk(path, start, end, encoding, charSet, b =>
-                {
-                    bytesProcessed[threadIndex] = b;
-                    progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
-                }, (CancellationToken)ct);
-                bag[threadIndex] = stringResults;
-            });
-        }
-
-        List<StringResult> results = [];
-        foreach (var result in bag)
-        {
-            results.AddRange(result);
-        }
-
-        // Remove overlapping strings
-        for (int i = results.Count - 1; i > 0; i--)
-        {
-            if (results[i].Position <= results[i - 1].EndPosition)
-            {
-                results.RemoveAt(i);
-            }
-        }
-
-        AllStringResults = results;
-        Debug.WriteLine($"Found strings: {results.Count}");
-        FilteredStrings = new ObservableCollection<StringResult>(AllStringResults);
-        Dispatcher.UIThread.Invoke(() => { StringsSource.Items = FilteredStrings; });
-    }
-
-    /// <summary>
-    /// Process a specified chunk of a file to find strings
-    /// </summary>
-    /// <param name="path">Path to input file</param>
-    /// <param name="start">Address in the file to start searching</param>
-    /// <param name="end">Address in the file to end searching</param>
-    /// <param name="encoding">Encoding to use when decoding the file bytes to text</param>
-    /// <param name="charSet">Character set to use when determining if a character is printable</param>
-    /// <param name="progressCallback">Progress callback with numbere of bytes that have been processed in this chunk</param>
-    /// <param name="ct">Cancellation token</param>
-    /// <returns>Found strings</returns>
-    private List<StringResult> ProcessFileChunk(string path, long start, long end, Encoding encoding,
-        Character.CharSet charSet, Action<long>? progressCallback, CancellationToken ct)
-    {
-        // Skip to this chunk's start point
-        using FileStream fs = new(path, FileMode.Open, FileAccess.Read);
-        fs.Seek(start, SeekOrigin.Begin);
-
-        // Get max byte count of a char in this encoding
-        int maxBytesPerChar = encoding.GetMaxByteCount(1);
-        int maxCharCount = encoding.GetMaxCharCount(maxBytesPerChar);
-        Debug.Assert(maxBytesPerChar > 0);
-
-        // Create a char buffer of that length
-        var charDecodeBuff = new char[maxCharCount];
-
-        // Buffer to decode the bytes to, extending extra for leftover bytes in multibyte chars
-        var buff = new byte[BlockSize + maxBytesPerChar - 1];
-
-        StringBuilder currentString = new();
-        long currentStringStart = 0;
-
-        List<StringResult> foundStrings = [];
-
-        int numBytesRead;
-        var totalBytesRead = 0;
-
-        // Set the encoding to use null byte as replacement character when a char isn't valid for the encoding,
-        // this will just act as a non-printable char and end the string.
-        encoding = (Encoding)encoding.Clone();
-        encoding.DecoderFallback = new DecoderReplacementFallback("\0");
-
-        bool breakOuter = false;
-        while (!breakOuter && (numBytesRead = fs.Read(buff, 0, BlockSize)) > 0)
-        {
-            if (ct.IsCancellationRequested) return [];
-            progressCallback?.Invoke(totalBytesRead);
-            totalBytesRead += numBytesRead;
-
-            long bufferStartOffset = fs.Position - numBytesRead;
-
-            if (numBytesRead < buff.Length)
-            {
-                // We're reusing the buffer, need to clear any previous data out
-                Array.Clear(buff, numBytesRead, buff.Length - numBytesRead);
-            }
-
-            var i = 0;
-            int bufferLength = Math.Min(numBytesRead, BlockSize);
-            while (i < bufferLength)
-            {
-                // TODO: What if buffer isn't div by 4? Might have 1-3 bytes left over that need to be rolled into beginning of next
-                // TODO: Potential solution is to limit BlockSize to a multiple of 4...
-                Array.Clear(charDecodeBuff, 0, charDecodeBuff.Length);
-                int numCharsDecoded = encoding.GetChars(buff, i, maxBytesPerChar, charDecodeBuff, 0);
-
-                if (numCharsDecoded == 0 || !Character.IsPrintable(charDecodeBuff[0], encoding, charSet))
-                {
-                    // Not printable here, reset and advance
-                    if (currentString.Length >= MinimumStringLength)
-                    {
-                        foundStrings.Add(new StringResult(currentString.ToString(), currentStringStart));
-                    }
-
-                    currentString.Clear();
-
-                    if ((bufferStartOffset + i) >= end)
-                    {
-                        breakOuter = true;
-                        break;
-                    }
-
-                    // Advance by one byte, since next string could start less than a full char away
-                    i++;
-                }
-                else
-                {
-                    // Char printable
-                    if (currentString.Length == 0)
-                    {
-                        // We're at the start of a new string
-                        currentStringStart = bufferStartOffset + i;
-                    }
-
-                    currentString.Append(charDecodeBuff[0]);
-
-                    // Advance by the byte length of that char
-                    i += encoding.GetByteCount(charDecodeBuff, 0, 1);
-                }
-            }
-        }
-
-        if (currentString.Length >= MinimumStringLength)
-        {
-            foundStrings.Add(new StringResult(currentString.ToString(), currentStringStart));
-        }
-
-        return foundStrings;
     }
 
     public StringsViewModel()

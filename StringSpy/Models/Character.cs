@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace StringSpy.Strings;
+namespace StringSpy.Models;
 
 public record StringResult(string Content, long Position)
 {
@@ -9,29 +9,29 @@ public record StringResult(string Content, long Position)
     public long Length => Content.Length;
 }
 
-public static class Character
+/// <summary>
+/// What set of characters should be used when finding strings, after being decoded using the current encoding.
+/// </summary>
+public enum CharSet
 {
     /// <summary>
-    /// What set of characters should be used when finding strings, after being decoded using the current encoding.
+    /// ASCII characters excluding control
     /// </summary>
-    public enum CharSet
-    {
-        /// <summary>
-        /// ASCII characters excluding control
-        /// </summary>
-        Ascii,
+    Ascii,
 
-        /// <summary>
-        /// ISO-8859-1 (Latin-1) characters excluding control
-        /// </summary>
-        Latin1,
+    /// <summary>
+    /// ISO-8859-1 (Latin-1) characters excluding control
+    /// </summary>
+    Latin1,
 
-        /// <summary>
-        /// All valid characters in the currently selected encoding
-        /// </summary>
-        CurrentEncoding
-    }
+    /// <summary>
+    /// All valid characters in the currently selected encoding
+    /// </summary>
+    CurrentEncoding
+}
 
+public static class Character
+{
     public static CharSet StringToCharSet(string name)
     {
         return name switch
