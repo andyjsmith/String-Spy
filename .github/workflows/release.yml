@@ -51,7 +51,7 @@ jobs:
         run: dotnet test --no-build --verbosity normal
 
       - name: Publish
-        run: dotnet publish StringSpy --no-restore --self-contained true --runtime ${{ matrix.rid }} /p:Version=${VERSION}
+        run: dotnet publish StringSpy --no-restore --self-contained true --runtime ${{ matrix.rid }} -p:Version=${VERSION}
 
       - name: Create archive
         working-directory: StringSpy/bin/Release/net9.0/${{ matrix.rid }}/publish/
