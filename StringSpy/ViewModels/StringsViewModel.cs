@@ -352,7 +352,7 @@ public partial class StringsViewModel : ViewModelBase
                     var sf = new StringsFinder(path, SelectedEncoding, SelectedCharSet, MinimumStringLength,
                         Environment.ProcessorCount);
                     var results = sf.FindStrings(progress => { ProgressValue = progress * 100.0; },
-                        ProcessCancellationTokenSource.Token);
+                        ct: ProcessCancellationTokenSource.Token);
 
                     AllStringResults = results;
                     Debug.WriteLine($"Found strings: {results.Count}");

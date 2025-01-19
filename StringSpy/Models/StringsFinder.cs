@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
+using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -47,27 +49,52 @@ public class StringsFinder
     /// Process an input file to find strings
     /// </summary>
     /// <param name="progressCallback">Callback for setting progress, 0 to 1</param>
+    /// <param name="useMemoryMappedFile">Try to use a memory mapped file instead of file stream</param>
     /// <param name="ct">Cancellation token</param>
-    public List<StringResult> FindStrings(Action<double>? progressCallback = null, CancellationToken ct = default)
+    public List<StringResult> FindStrings(Action<double>? progressCallback = null, bool useMemoryMappedFile = true,
+        CancellationToken ct = default)
     {
         long fileSize = new FileInfo(_path).Length;
         long chunkSize = fileSize / _threadCount;
         var bytesProcessed = new long[_threadCount];
         var resultsPerThread = new List<StringResult>[_threadCount];
-        
-        Parallel.For(0, _threadCount, threadIndex =>
+
+        MemoryMappedFile? mmf = null;
+        try
         {
-            long start = threadIndex * chunkSize;
-            long end = threadIndex == _threadCount - 1 ? fileSize : start + chunkSize;
-            Debug.WriteLine(
-                $"Starting parallel chunk processor: {threadIndex + 1:D2}/{_threadCount}, start: {start}, end: {end}");
-            var stringResults = ProcessFileChunk(start, end, b =>
+            if (useMemoryMappedFile)
             {
-                bytesProcessed[threadIndex] = b;
-                progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
-            }, ct);
-            resultsPerThread[threadIndex] = stringResults;
-        });
+                mmf = MemoryMappedFile.CreateFromFile(_path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
+            }
+        }
+        catch (Exception e) when (e is ArgumentOutOfRangeException or IOException or PathTooLongException
+                                      or SecurityException)
+        {
+            Debug.WriteLine(e.Message);
+        }
+
+        try
+        {
+            Parallel.For(0, _threadCount, threadIndex =>
+            {
+                long start = threadIndex * chunkSize;
+                long end = threadIndex == _threadCount - 1 ? fileSize : start + chunkSize;
+                Debug.WriteLine(
+                    $"Starting parallel chunk processor: {threadIndex + 1:D2}/{_threadCount}, start: {start}, end: {end}");
+
+                var stringResults = ProcessFileChunk(start, end, b =>
+                {
+                    bytesProcessed[threadIndex] = b;
+                    progressCallback?.Invoke((double)bytesProcessed.Sum() / fileSize);
+                    // ReSharper disable once AccessToDisposedClosure
+                }, mmf, ct);
+                resultsPerThread[threadIndex] = stringResults;
+            });
+        }
+        finally
+        {
+            mmf?.Dispose();
+        }
 
         var results = resultsPerThread.SelectMany(x => x).ToList();
 
@@ -87,57 +114,68 @@ public class StringsFinder
     /// <param name="start">Address in the file to start searching</param>
     /// <param name="end">Address in the file to end searching</param>
     /// <param name="progressCallback">Progress callback with number of bytes that have been processed in this chunk</param>
+    /// <param name="mmf">Memory mapped file to use. If null, falls back to FileStream.</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Found strings</returns>
     private List<StringResult> ProcessFileChunk(long start, long end, Action<long>? progressCallback,
+        MemoryMappedFile? mmf,
         CancellationToken ct)
     {
-        // Skip to this chunk's start point
-        using FileStream fs = new(_path, FileMode.Open, FileAccess.Read);
-        fs.Seek(start, SeekOrigin.Begin);
-
-        // Get max byte count of a char in this encoding
-        int maxBytesPerChar = _encoding.GetMaxByteCount(1);
-        int maxCharCount = _encoding.GetMaxCharCount(maxBytesPerChar);
-        Debug.Assert(maxBytesPerChar > 0);
-
-        // Create a char buffer of that length
-        var charDecodeBuff = new char[maxCharCount];
-
-        // Buffer to decode the bytes to, extending extra for leftover bytes in multibyte chars
-        var buff = new byte[BlockSize + maxBytesPerChar - 1];
-
-        StringBuilder currentString = new();
-        long currentStringStart = 0;
-
-        List<StringResult> foundStrings = [];
-
-        int numBytesRead;
-        var totalBytesRead = 0;
-
-        bool breakOuter = false;
-        while (!breakOuter && (numBytesRead = fs.Read(buff, 0, BlockSize)) > 0)
+        Stream? fs = null;
+        if (mmf != null)
         {
-            if (ct.IsCancellationRequested) return [];
-            progressCallback?.Invoke(totalBytesRead);
-            totalBytesRead += numBytesRead;
-
-            long bufferStartOffset = fs.Position - numBytesRead;
-
-            if (numBytesRead < buff.Length)
+            try
             {
-                // We're reusing the buffer, need to clear any previous data out
-                Array.Clear(buff, numBytesRead, buff.Length - numBytesRead);
+                fs = mmf.CreateViewStream(0, 0, MemoryMappedFileAccess.Read);
             }
-
-            var i = 0;
-            int bufferLength = Math.Min(numBytesRead, BlockSize);
-            while (i < bufferLength)
+            catch (Exception e) when (e is UnauthorizedAccessException or IOException)
             {
+                Debug.WriteLine(e.Message);
+            }
+        }
+
+        // Fallback to FileStream if memory mapped file is null or fails
+        fs ??= new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, BlockSize,
+            FileOptions.SequentialScan);
+
+        try
+        {
+            // Skip to this chunk's start point
+            fs.Seek(start, SeekOrigin.Begin);
+
+            // Get max byte count of a char in this encoding
+            int maxBytesPerChar = _encoding.GetMaxByteCount(1);
+            int maxCharCount = _encoding.GetMaxCharCount(maxBytesPerChar);
+            Debug.Assert(maxBytesPerChar > 0);
+
+            // Create a char buffer of that length
+            var charDecodeBuff = new char[maxCharCount];
+
+            StringBuilder currentString = new();
+            long currentStringStart = 0;
+
+            List<StringResult> foundStrings = [];
+
+            var readBuff = new byte[maxBytesPerChar];
+
+            long i = start;
+            while (i < end || currentString.Length > 0)
+            {
+                if (i % 1_000_000 == 0)
+                {
+                    if (ct.IsCancellationRequested) return [];
+                    progressCallback?.Invoke(i - start);
+                }
+
                 // TODO: What if buffer isn't div by 4? Might have 1-3 bytes left over that need to be rolled into beginning of next
                 // TODO: Potential solution is to limit BlockSize to a multiple of 4...
-                Array.Clear(charDecodeBuff, 0, charDecodeBuff.Length);
-                int numCharsDecoded = _encoding.GetChars(buff, i, maxBytesPerChar, charDecodeBuff, 0);
+
+                // Read a minimum of one character
+                fs.Seek(i, SeekOrigin.Begin);
+                int numBytesRead = fs.Read(readBuff, 0, maxBytesPerChar);
+
+                // Decode the character(s)
+                int numCharsDecoded = _encoding.GetChars(readBuff, 0, numBytesRead, charDecodeBuff, 0);
 
                 if (numCharsDecoded == 0 || !Character.IsPrintable(charDecodeBuff[0], _encoding, _charSet))
                 {
@@ -149,22 +187,16 @@ public class StringsFinder
 
                     currentString.Clear();
 
-                    if ((bufferStartOffset + i) >= end)
-                    {
-                        breakOuter = true;
-                        break;
-                    }
-
                     // Advance by one byte, since next string could start less than a full char away
                     i++;
                 }
                 else
                 {
-                    // Char printable
+                    // Char is printable
                     if (currentString.Length == 0)
                     {
                         // We're at the start of a new string
-                        currentStringStart = bufferStartOffset + i;
+                        currentStringStart = i;
                     }
 
                     currentString.Append(charDecodeBuff[0]);
@@ -173,14 +205,18 @@ public class StringsFinder
                     i += _encoding.GetByteCount(charDecodeBuff, 0, 1);
                 }
             }
-        }
 
-        if (currentString.Length >= _minimumLength)
+            if (currentString.Length >= _minimumLength)
+            {
+                foundStrings.Add(new StringResult(currentString.ToString(), currentStringStart));
+            }
+
+            return foundStrings;
+        }
+        finally
         {
-            foundStrings.Add(new StringResult(currentString.ToString(), currentStringStart));
+            fs.Dispose();
         }
-
-        return foundStrings;
     }
 
 
