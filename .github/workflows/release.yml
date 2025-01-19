@@ -23,6 +23,12 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     
     steps:
+      - name: Set version
+        shell: bash
+        run: |
+          TAG=${{ github.ref_name }}
+          echo "VERSION=${TAG#v}" >> $GITHUB_ENV
+        
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -41,16 +47,16 @@ jobs:
         run: dotnet test --no-build --verbosity normal
 
       - name: Publish
-        run: dotnet publish StringSpy.Desktop --no-build --self-contained true --runtime ${{ matrix.rid }} /p:Version=${{github.ref_name#v}}
+        run: dotnet publish StringSpy.Desktop --no-build --self-contained true --runtime ${{ matrix.rid }} /p:Version=${VERSION}
 
-      - name: Archive Files
+      - name: Archive files
         shell: bash
         run: |
           cd StringSpy\bin\Release\net9.0\${{ matrix.rid }}\publish\
-          ${{ archive-cmd }} stringspy-${{github.ref_name#v}}-${{ matrix.rid }}.${{ archive-suffix }} *
+          ${{ matrix.archive-cmd }} stringspy-${VERSION}-${{ matrix.rid }}.${{ matrix.archive-suffix }} *
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            StringSpy\bin\Release\net9.0\${{ matrix.rid }}\publish\stringspy-${{github.ref_name#v}}-${{ matrix.rid }}.${{ archive-suffix }}
+            StringSpy\bin\Release\net9.0\${{ matrix.rid }}\publish\stringspy-${VERSION}-${{ matrix.rid }}.${{ matrix.archive-suffix }}
