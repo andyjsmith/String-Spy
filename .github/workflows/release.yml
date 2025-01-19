@@ -45,7 +45,7 @@ jobs:
         run: dotnet test --no-build --verbosity normal
 
       - name: Publish
-        run: dotnet publish StringSpy.Desktop --no-build --self-contained true --runtime ${{ matrix.rid }} /p:Version=${VERSION}
+        run: dotnet publish StringSpy --no-build --self-contained true --runtime ${{ matrix.rid }} /p:Version=${VERSION}
 
       - name: Archive files
         shell: bash
