@@ -49,11 +49,11 @@ jobs:
 
       - name: Create archive
         shell: bash
-        working-directory: StringSpy\bin\Release\net9.0\${{ matrix.rid }}\publish\
+        working-directory: StringSpy/bin/Release/net9.0/${{ matrix.rid }}/publish/
         run: ${{ matrix.archive-cmd }} stringspy-${VERSION}-${{ matrix.rid }}.${{ matrix.archive-suffix }} *
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            StringSpy\bin\Release\net9.0\${{ matrix.rid }}\publish\stringspy-${VERSION}-${{ matrix.rid }}.${{ matrix.archive-suffix }}
+            StringSpy/bin/Release/net9.0/${{ matrix.rid }}/publish/stringspy-${VERSION}-${{ matrix.rid }}.${{ matrix.archive-suffix }}
