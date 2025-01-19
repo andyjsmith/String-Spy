@@ -15,7 +15,7 @@ jobs:
           - rid: win-x64
             runs-on: windows-latest
             archive-suffix: zip
-            archive-cmd: zip -j
+            archive-cmd: 7z a -tzip
           - rid: linux-x64
             runs-on: ubuntu-latest
             archive-suffix: tar.gz
