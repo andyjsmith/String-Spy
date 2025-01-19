@@ -1,0 +1,54 @@
+on:
+  push:
+    tags: [ "v*.*.*" ]
+
+jobs:
+  Release:
+    needs: Build
+    
+    strategy:
+      matrix:
+        include:
+          - rid: win-x64
+            runs-on: windows-latest
+            archive-suffix: zip
+            archive-cmd: zip -j
+          - rid: linux-x64
+            runs-on: ubuntu-latest
+            archive-suffix: tar.gz
+            archive-cmd: tar -czvf
+    
+    runs-on: ${{ matrix.runs-on }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore
+
+      - name: Test
+        run: dotnet test --no-build --verbosity normal
+
+      - name: Publish
+        run: dotnet publish StringSpy.Desktop --no-build --self-contained true --runtime ${{ matrix.rid }} /p:Version=${{github.ref_name#v}}
+
+      - name: Archive Files
+        shell: bash
+        run: |
+          cd StringSpy\bin\Release\net9.0\${{ matrix.rid }}\publish\
+          ${{ archive-cmd }} stringspy-${{github.ref_name#v}}-${{ matrix.rid }}.${{ archive-suffix }} *
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            StringSpy\bin\Release\net9.0\${{ matrix.rid }}\publish\stringspy-${{github.ref_name#v}}-${{ matrix.rid }}.${{ archive-suffix }}
