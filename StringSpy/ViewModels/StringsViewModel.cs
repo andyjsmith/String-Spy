@@ -144,7 +144,9 @@ public partial class StringsViewModel : ViewModelBase
     {
         CancelSearch();
         AllStringResults.Clear();
+        AllStringResults = [];
         FilteredStrings.Clear();
+        FilteredStrings = [];
         LoadedFile = null;
     }
 

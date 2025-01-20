@@ -192,19 +192,21 @@
                     <ProgressBar Grid.Column="1" Value="{Binding ProgressValue}" />
                 </Grid>
 
-                <Grid ColumnDefinitions="*,Auto,Auto"
+                <Grid ColumnDefinitions="*,Auto"
                       IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNull}}">
                     <TextBlock Grid.Column="0" Text="{Binding LoadedFile}" VerticalAlignment="Center" Margin="5" />
 
-                    <TextBlock Grid.Column="1"
-                               IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                               VerticalAlignment="Center"
-                               Theme="{DynamicResource CaptionTextBlockStyle}"
-                               Text="{Binding FilteredStrings.Count, StringFormat='{}{0:N0} / '}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0 0 5 0">
+                        <TextBlock
+                            IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                            VerticalAlignment="Center"
+                            Theme="{DynamicResource CaptionTextBlockStyle}"
+                            Text="{Binding FilteredStrings.Count, StringFormat='{}{0:N0} / '}" />
 
-                    <TextBlock Grid.Column="2" VerticalAlignment="Center"
-                               Theme="{DynamicResource CaptionTextBlockStyle}"
-                               Text="{Binding AllStringResults.Count, StringFormat='{}{0:N0} results'}" Margin="0 0 5 0" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Theme="{DynamicResource CaptionTextBlockStyle}"
+                                   Text="{Binding AllStringResults.Count, StringFormat='{}{0:N0} results'}" />
+                    </StackPanel>
                 </Grid>
             </Panel>
         </Border>
