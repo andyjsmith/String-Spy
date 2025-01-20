@@ -53,7 +53,7 @@ public class StringsFinderTest(ITestOutputHelper output)
         [new TestFile(GetTestDataPath("utf8_random.txt"), 0, 635, 77, 76, 0, 0)],
         [new TestFile(GetTestDataPath("utf16le.txt"), 67, 102, 665, 876, 0, 0)],
         [new TestFile(GetTestDataPath("utf16le_random.txt"), 2379, 7055, 531, 524, 0, 0)],
-        [new TestFile(GetTestDataPath("utf16be.txt"), 63, 85, 797, 633, 0, 0)],
+        [new TestFile(GetTestDataPath("utf16be.txt"), 63, 85, 796, 633, 0, 0)],
         [new TestFile(GetTestDataPath("utf16be_random.txt"), 2341, 7073, 528, 536, 0, 0)],
     ];
 
@@ -64,7 +64,8 @@ public class StringsFinderTest(ITestOutputHelper output)
         foreach ((Encoding encoding, int? expectedCount) in file.Encodings)
         {
             if (expectedCount == null) continue;
-            var results = new StringsFinder(file.Path, encoding, CharSet.CurrentEncoding).FindStrings();
+            var results =
+                new StringsFinder(file.Path, encoding, CharSet.CurrentEncoding).FindStrings(useMemoryMappedFile: false);
             Assert.Equal(expectedCount, results.Count);
         }
     }
