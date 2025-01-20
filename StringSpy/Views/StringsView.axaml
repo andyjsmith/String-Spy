@@ -118,20 +118,6 @@
                     </ComboBox>
                 </ui:CommandBarElementContainer>
 
-                <ui:CommandBarSeparator />
-
-                <ui:CommandBarElementContainer>
-                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Padding="12 0"
-                               Theme="{DynamicResource CaptionTextBlockStyle}">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0:N0} / {1:N0}">
-                                <Binding Path="FilteredStrings.Count" />
-                                <Binding Path="AllStringResults.Count" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                </ui:CommandBarElementContainer>
-
                 <ui:CommandBarElementContainer IsVisible="False">
                     <!--
                     Hidden element to workaround HotKeys from secondary menus not registering until they're shown.
@@ -163,9 +149,6 @@
                       FontFamily="{Binding FontValue}"
                       TemplateApplied="Tree_OnTemplateApplied">
             <TreeDataGrid.Styles>
-                <Style Selector="ScrollBar">
-                    <Setter Property="AllowAutoHide" Value="False" />
-                </Style>
                 <Style Selector="TreeDataGridTextCell, TreeDataGridColumnHeader">
                     <Setter Property="Padding" Value="8 2 8 2" />
                 </Style>
@@ -187,25 +170,43 @@
         </StackPanel>
 
         <!-- Footer -->
-        <Border IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNotNull}}"
-                Grid.Row="2"
+        <Border Grid.Row="2"
                 BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
                 BorderThickness="0 1 0 0"
                 Padding="5 5 5 5">
-            <Grid ColumnDefinitions="*,Auto,Auto">
-                <TextBlock Grid.Column="0" Text="{Binding ProgressText}" VerticalAlignment="Center" />
-                <Button Grid.Column="2"
-                        Margin="10 0 0 0"
-                        Content="Cancel"
-                        Command="{Binding CancelTask}">
-                    <Button.Styles>
-                        <Style Selector="AccessText">
-                            <Setter Property="Theme" Value="{DynamicResource CaptionTextBlockStyle}" />
-                        </Style>
-                    </Button.Styles>
-                </Button>
-                <ProgressBar Grid.Column="1" Value="{Binding ProgressValue}" />
-            </Grid>
+            <Panel>
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock Grid.Column="0" Text="{Binding ProgressText}" VerticalAlignment="Center" Margin="5" />
+                    <Button Grid.Column="2"
+                            Margin="10 0 0 0"
+                            Padding="5"
+                            Content="Cancel"
+                            Command="{Binding CancelTask}">
+                        <Button.Styles>
+                            <Style Selector="AccessText">
+                                <Setter Property="Theme" Value="{DynamicResource CaptionTextBlockStyle}" />
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+                    <ProgressBar Grid.Column="1" Value="{Binding ProgressValue}" />
+                </Grid>
+
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNull}}">
+                    <TextBlock Grid.Column="0" Text="{Binding LoadedFile}" VerticalAlignment="Center" Margin="5" />
+
+                    <TextBlock Grid.Column="1"
+                               IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               VerticalAlignment="Center"
+                               Theme="{DynamicResource CaptionTextBlockStyle}"
+                               Text="{Binding FilteredStrings.Count, StringFormat='{}{0:N0} / '}" />
+
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center"
+                               Theme="{DynamicResource CaptionTextBlockStyle}"
+                               Text="{Binding AllStringResults.Count, StringFormat='{}{0:N0} results'}" Margin="0 0 5 0" />
+                </Grid>
+            </Panel>
         </Border>
     </Grid>
 </UserControl>
