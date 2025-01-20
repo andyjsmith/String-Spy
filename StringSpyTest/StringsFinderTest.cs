@@ -47,14 +47,14 @@ public class StringsFinderTest(ITestOutputHelper output)
 
     public static IEnumerable<object[]> TestFiles =>
     [
-        [new TestFile(GetTestDataPath("ascii.txt"), 611, 355, 24, 83, 0, 0)],
-        [new TestFile(GetTestDataPath("ascii_random.txt"), 1573, 272, 1, 1, 0, 0)],
-        [new TestFile(GetTestDataPath("utf8.txt"), 619, 372, 56, 107, 0, 0)],
-        [new TestFile(GetTestDataPath("utf8_random.txt"), 0, 635, 77, 76, 0, 0)],
-        [new TestFile(GetTestDataPath("utf16le.txt"), 67, 102, 665, 876, 0, 0)],
-        [new TestFile(GetTestDataPath("utf16le_random.txt"), 2379, 7055, 531, 524, 0, 0)],
-        [new TestFile(GetTestDataPath("utf16be.txt"), 63, 85, 796, 633, 0, 0)],
-        [new TestFile(GetTestDataPath("utf16be_random.txt"), 2341, 7073, 528, 536, 0, 0)],
+        [new TestFile(GetTestDataPath("ascii.txt"), 611, 355)],
+        [new TestFile(GetTestDataPath("ascii_random.txt"), 1573, 272)],
+        [new TestFile(GetTestDataPath("utf8.txt"), 619, 372)],
+        [new TestFile(GetTestDataPath("utf8_random.txt"), 0, 635)],
+        [new TestFile(GetTestDataPath("utf16le.txt"), 67, 102, 665, 876)],
+        [new TestFile(GetTestDataPath("utf16le_random.txt"), 2379, 7055, 531, 524)],
+        [new TestFile(GetTestDataPath("utf16be.txt"), 63, 85, 796, 633)],
+        [new TestFile(GetTestDataPath("utf16be_random.txt"), 2341, 7073, 528, 536)],
     ];
 
     [Theory(DisplayName = "String counts equal expected counts")]
